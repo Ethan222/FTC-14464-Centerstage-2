@@ -105,6 +105,7 @@ public final class MecanumDrive {
             new ProfileAccelConstraint(PARAMS.minProfileAccel, PARAMS.maxProfileAccel);
 
     public final DcMotorEx leftFront, leftBack, rightBack, rightFront;
+    public static final String FL_NAME = "FL", BL_NAME = "BL", BR_NAME = "BR", FR_NAME = "FR";
 
     public final VoltageSensor voltageSensor;
 
@@ -201,10 +202,10 @@ public final class MecanumDrive {
 
         // make sure your config has motors with these names (or change them)
         //   see https://ftc-docs.firstinspires.org/en/latest/hardware_and_software_configuration/configuring/index.html
-        leftFront = hardwareMap.get(DcMotorEx.class, "FL");
-        leftBack = hardwareMap.get(DcMotorEx.class, "BL");
-        rightBack = hardwareMap.get(DcMotorEx.class, "BR");
-        rightFront = hardwareMap.get(DcMotorEx.class, "FR");
+        leftFront = hardwareMap.get(DcMotorEx.class, FL_NAME);
+        leftBack = hardwareMap.get(DcMotorEx.class, BL_NAME);
+        rightBack = hardwareMap.get(DcMotorEx.class, BR_NAME);
+        rightFront = hardwareMap.get(DcMotorEx.class, FR_NAME);
 
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

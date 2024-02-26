@@ -6,36 +6,32 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.arcrobotics.ftclib.util.MathUtils;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Motor {
-  protected DcMotorEx motor;
+  protected DcMotor motor;
   private final static double DEFAULT_ACCELERATION = .2;
-  private int[] positions;
 
-  public Motor(HardwareMap hardwareMap, String name, int[] psns) {
-    motor = hardwareMap.get(DcMotorEx.class, name);
-    if(psns != null)
-      motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-    else
-      motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-    positions = psns;
+  public Motor(HardwareMap hardwareMap, String name) {
+    motor = hardwareMap.get(DcMotor.class, name);
   }
-  public Motor(HardwareMap hardwareMap, String name) { this(hardwareMap, name, null); }
 
   public double getPower() {
     return motor.getPower();
   }
   
-  public void setPower(double power) {
-    motor.setPower(MathUtils.clamp(power, -1, 1));
+  public Action setPower(double power) {
+    return telemetryPacket -> {
+      motor.setPower(MathUtils.clamp(power, -1, 1));
+      return false;
+    };
   }
-  public void changePower(double change) {
-    setPower(getPower() + change);
+  public Action changePower(double change) {
+    return setPower(getPower() + change);
   }
-  public void stop() {
-    setPower(0);
+  public Action stop() {
+    return setPower(0);
   }
 
   // acceleration 
@@ -45,7 +41,7 @@ public class Motor {
     if(accel == 0)
       throw new Exception("Acceleration can't be 0");
     return new Action() {
-      private final double targetPower = finalPower, acceleration = accel;
+      private final double targetPower = finalPower, acceleration = Math.abs(accel);
       
       @Override
       public boolean run(@NonNull TelemetryPacket packet) {
@@ -64,5 +60,17 @@ public class Motor {
   }
   public Action accelerateTo(double power) throws Exception {
     return accelerateTo(power, DEFAULT_ACCELERATION);
+  }
+
+  public String getTelemetry() {
+    return String.format("%.1f", getPower());
+  }
+
+  public void brakeOnZeroPower() {
+    motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+  }
+
+  public void reverseDirection() {
+    motor.setDirection(DcMotorSimple.Direction.REVERSE);
   }
 }
