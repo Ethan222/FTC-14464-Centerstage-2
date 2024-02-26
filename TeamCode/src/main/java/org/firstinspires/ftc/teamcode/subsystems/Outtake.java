@@ -2,15 +2,16 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Action;
+import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 @Config
-public class Outtake {
+public class Outtake extends SubsystemBase {
     public static final String RETRACTED = "RETRACTED", PARTLY_EXTENDED = "PARTLY EXTENDED", EXTENDED = "EXTENDED", EXTRA_EXTENDED = "EXTRA EXTENDED";
     public static final String DOWN = "DOWN";
 
-    private static class Claw {
+    public static class Claw extends SubsystemBase {
         private final ServoEx servo;
         public Claw(HardwareMap hardwareMap, String name, double upPsn, double downPsn) {
             servo = hardwareMap.get(ServoEx.class, name);
@@ -21,11 +22,8 @@ public class Outtake {
                 servo.setRange(upPsn, downPsn);
             }
         }
-        public Action down() {
-            return telemetryPacket -> {
-                servo.setPosition(0);
-                return false;
-            };
+        public void down() {
+            servo.setPosition(0);
         }
         public Action up() {
             return telemetryPacket -> {

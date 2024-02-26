@@ -4,6 +4,8 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.arcrobotics.ftclib.command.InstantCommand;
+import com.arcrobotics.ftclib.command.Subsystem;
 import com.arcrobotics.ftclib.drivebase.MecanumDrive;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys.Button;
@@ -42,6 +44,7 @@ public class Tele extends LinearOpMode {
         Motor bL = new Motor(hardwareMap, org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive.BL_NAME);
         Motor bR = new Motor(hardwareMap, org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive.BR_NAME);
         drive = new MecanumDrive(fL, fR, bL, bR);
+
         driver1 = new GamepadEx(gamepad1);
         driver2 = new GamepadEx(gamepad2);
 
@@ -59,16 +62,22 @@ public class Tele extends LinearOpMode {
             telemetry.update();
         }
 
-        telemetry.addData("Wheel speed (RT)", () -> speed);
+        telemetry.addData("Wheel speed (RB)", () -> speed);
         telemetry.addLine();
         telemetry.addData("intake", robot.intake::getTelemetry);
         telemetry.addData("outtake", robot.outtake::getTelemetry);
         telemetry.addData("pixel pusher", robot.pixelPusher::getTelemetry);
         telemetry.addData("hang", robot.hang::getTelemetry);
+
         while(opModeIsActive()) {
             TelemetryPacket packet = new TelemetryPacket();
 
-            double leftX = speed * driver1.getLeftX(), leftY = speed * driver1.getLeftY(), rightX = speed * driver1.getRightX();
+            double leftX = 0, leftY = 0, rightX = 0;
+            if(!gamepad1.back) {
+                leftX = speed * driver1.getLeftX();
+                leftY = speed * driver1.getLeftY();
+                rightX = speed * driver1.getRightX();
+            }
             if(fieldCentric)
                 drive.driveFieldCentric(leftX, leftY, rightX, robot.drive.imu.get().getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
             else drive.driveRobotCentric(leftX, leftY, rightX);
@@ -88,22 +97,18 @@ public class Tele extends LinearOpMode {
                     fieldCentric = false;
 
                 // slow mode
-                if (gamepad1.right_trigger > .3)
-                    speed = WHEEL_SLOW_SPEED;
-                else if(speed != 1)
-                    speed = 1;
+                speed = gamepad1.right_bumper ? WHEEL_SLOW_SPEED : 1;
             }
 
             // intake
             double rt = driver2.getTrigger(Trigger.RIGHT_TRIGGER), lt = driver2.getTrigger(Trigger.LEFT_TRIGGER);
             if(rt > 0) {
-                runningActions.add(robot.intake.in());
-                if(driver2.isDown(Button.BACK)) {
+                runningActions.add(robot.intake.in(rt));
+                if(gamepad2.back)
                     runningActions.add(rt > .8 ? robot.intake.lower() : robot.intake.lower(1));
-                }
             } else if(lt > 0) {
-                runningActions.add(robot.intake.out());
-                if(driver2.isDown(Button.BACK))
+                runningActions.add(robot.intake.out(lt));
+                if(gamepad2.back)
                     runningActions.add(lt > .8 ? robot.intake.raise() : robot.intake.raise(1));
             } else if(robot.intake.getPower() != 0)
                 runningActions.add(robot.intake.stop());

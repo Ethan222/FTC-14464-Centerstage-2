@@ -1,13 +1,11 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import androidx.annotation.NonNull;
-
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
+import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-public class Intake {
+public class Intake extends SubsystemBase {
     private final Motor motor;
     private final ServoEx lowerer;
 
@@ -19,7 +17,7 @@ public class Intake {
     }
 
     public Action in(double power) {
-        return motor.setPower(power)
+        return motor.setPower(power);
     }
     public Action in() { return in(1); }
     public Action out(double power) {
