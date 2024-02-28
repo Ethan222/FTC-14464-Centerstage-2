@@ -8,6 +8,7 @@ import com.arcrobotics.ftclib.util.MathUtils;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.Range;
 
 public class Motor {
   protected DcMotor motor;
@@ -21,22 +22,19 @@ public class Motor {
     return motor.getPower();
   }
   
-  public Action setPower(double power) {
-    return telemetryPacket -> {
+  public void setPower(double power) {
       motor.setPower(MathUtils.clamp(power, -1, 1));
-      return false;
-    };
   }
-  public Action changePower(double change) {
-    return setPower(getPower() + change);
+  public void changePower(double change) {
+    setPower(getPower() + change);
   }
-  public Action stop() {
-    return setPower(0);
+  public void stop() {
+    setPower(0);
   }
 
   // acceleration 
   public Action accelerateTo(double power, double accel) throws Exception {
-    power = MathUtils.clamp(power, -1, 1);
+    power = Range.clip(power, -1, 1);
     double finalPower = power;
     if(accel == 0)
       throw new Exception("Acceleration can't be 0");
