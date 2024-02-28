@@ -3,16 +3,21 @@ package org.firstinspires.ftc.teamcode;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.PoseVelocity2d;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys.Button;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.subsystems.CustomServo;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @TeleOp(group = "_tele")
 public class Tele extends LinearOpMode {
@@ -27,8 +32,8 @@ public class Tele extends LinearOpMode {
     private CustomButton a, b, x, y, dpadUp, dpadDown, rb, lb;
     private FtcDashboard dash = FtcDashboard.getInstance();
     private List<Action> runningActions = new ArrayList<>();
-
-    private boolean initialize() {
+    private ScheduledExecutorService executorService;
+    private void initialize() {
         robot = new Robot(hardwareMap, startPose);
 //        Motor fL = new Motor(hardwareMap, "FL");
 //        Motor fR = new Motor(hardwareMap, "FR");
@@ -39,12 +44,7 @@ public class Tele extends LinearOpMode {
         driver1 = new GamepadEx(gamepad1);
         driver2 = new GamepadEx(gamepad2);
 
-        robot.outtake.servos[0].setButtons(new CustomButton(driver2, Button.DPAD_RIGHT), new CustomButton(driver2, Button.DPAD_LEFT));
-        robot.outtake.servos[1].setButtons(new CustomButton(driver2, Button.X), new CustomButton(driver2, Button.Y));
-        robot.outtake.servos[2].setButtons(new CustomButton(driver2, Button.RIGHT_BUMPER), new CustomButton(driver2, Button.LEFT_BUMPER));
-        robot.outtake.servos[3].setButtons(new CustomButton(driver2, Button.DPAD_UP), new CustomButton(driver2, Button.DPAD_DOWN));
-
-        return true;
+        executorService = Executors.newSingleThreadScheduledExecutor();
     }
 
     @Override public void runOpMode() throws InterruptedException {
@@ -69,9 +69,13 @@ public class Tele extends LinearOpMode {
         telemetry.log().clear();
 
 //        telemetry.addData("Wheel speed (RB)", () -> speed);
-
-        telemetry.addData("intake (RT/LT)", robot.intake::getTelemetry);
-        telemetry.addData("\nouttake", robot.outtake::getTelemetry);
+        telemetry.addData("\nintake (RT/LT)", robot.intake::getTelemetry);
+        telemetry.addData("outtake", null).setRetained(true);
+        telemetry.addData(" flipper (dpad up/down)", robot.outtake.flipper::getTelemetry);
+        telemetry.addData(" extender (dpad up/down)", robot.outtake.extender::getTelemetry);
+        telemetry.addData(" arm rotator (left stick x)", robot.outtake.armRotator::getTelemetry);
+        telemetry.addData(" pixel rotator (right stick x)", robot.outtake.pixelRotator::getTelemetry);
+        telemetry.addData(" releaser (a/b)", robot.outtake.pixelRotator::getTelemetry);
 
         while (opModeIsActive()) {
             if((gamepad1.start && gamepad2.back) || (gamepad2.start && gamepad2.back))
@@ -79,14 +83,38 @@ public class Tele extends LinearOpMode {
             if(gamepad2.start && gamepad2.x)
                 telemetry.log().clear();
 
-            for(CustomServo servo : robot.outtake.servos)
-                servo.update();
+            // drive
+            robot.drive.setDrivePowers(new PoseVelocity2d(
+                    new Vector2d(
+                            -gamepad1.left_stick_y,
+                            -gamepad1.left_stick_x
+                    ),
+                    -gamepad1.right_stick_x
+            ));
+            robot.drive.updatePoseEstimate();
 
+            // intake
             if(gamepad2.right_trigger > 0)
                 robot.intake.in(gamepad2.right_trigger);
             else if(gamepad2.left_trigger > 0)
                 robot.intake.out(gamepad2.left_trigger);
             else robot.intake.stop();
+
+            // outtake
+            if(gamepad2.dpad_up) {
+                robot.outtake.flipper.goToMaxPos();
+                executorService.schedule(robot.outtake.extender::goToMaxPos, 200, TimeUnit.MILLISECONDS);
+            } else if(gamepad2.dpad_down) {
+                robot.outtake.extender.goToMinPos();
+                robot.outtake.flipper.goToMinPos();
+            }
+            robot.outtake.extender.rotateBy(-gamepad2.left_stick_y / 100);
+            robot.outtake.armRotator.rotateBy(gamepad2.left_stick_x / 500);
+            robot.outtake.pixelRotator.rotateBy(gamepad2.right_stick_x / 100);
+            if(gamepad2.a)
+                robot.outtake.releaser.goToMinPos();
+            else if(gamepad1.b)
+                robot.outtake.releaser.goToMaxPos();
 
 //            List<Action> newActions = new ArrayList<>();
 //            for(Action action : runningActions) {

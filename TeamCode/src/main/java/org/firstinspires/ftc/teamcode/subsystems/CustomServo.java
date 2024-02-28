@@ -1,25 +1,29 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import com.arcrobotics.ftclib.hardware.ServoEx;
-import com.arcrobotics.ftclib.hardware.SimpleServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.CustomButton;
 
 public class CustomServo {
-    public final ServoEx servo;
+    public final String name;
+    private final Servo servo;
+    private final double minPosition, maxPosition;
     private CustomButton button1, button2;
-    private double minPosition, maxPosition;
-    public static final double downTime = .4, doubleTapTime = .1;
-    public static final double singleRotateAmount = .02, continousRotateAmount = .001;
-    public CustomServo(HardwareMap hardwareMap, String name, double minPos, double maxPos) {
-        servo = new SimpleServo(hardwareMap, name, 0, 360);
+    public static final double downTime = .4, doubleTapTime = .15;
+    public static final double singleRotateAmount = .02, continuousRotateAmount = .004;
+    public CustomServo(String name, HardwareMap hardwareMap, String id, double minPos, double maxPos) {
+        this.name = name;
+        servo = hardwareMap.get(Servo.class, id);
         minPosition = minPos;
         maxPosition = maxPos;
     }
     public void setPosition(double pos) {
         servo.setPosition(Range.clip(pos, minPosition, maxPosition));
+    }
+    public void rotateBy(double delta) {
+        setPosition(getPosition() + delta);
     }
     public void setButtons(CustomButton b1, CustomButton b2) {
         button1 = b1;
@@ -32,18 +36,33 @@ public class CustomServo {
             if(button1.getTimeUp() < doubleTapTime)
                 setPosition(maxPosition);
             else
-                servo.rotateBy(singleRotateAmount);
+                rotateBy(singleRotateAmount);
         } else if (button1.getState() == CustomButton.State.DOWN && button1.getTimeDown() > downTime)
-            servo.rotateBy(continousRotateAmount);
+            rotateBy(continuousRotateAmount);
         else if (button2.getState() == CustomButton.State.JUST_DOWN) {
             if(button2.getTimeUp() < doubleTapTime)
                 setPosition(minPosition);
-            else servo.rotateBy(-singleRotateAmount);
+            else rotateBy(-singleRotateAmount);
         } else if(button2.getState() == CustomButton.State.DOWN && button2.getTimeDown() > downTime)
-            servo.rotateBy(-continousRotateAmount);
+            rotateBy(-continuousRotateAmount);
     }
 
     public double getPosition() {
         return servo.getPosition();
+    }
+    public String getTelemetry() {
+        return String.format("%.2f", getPosition());
+    }
+
+    public double getMinPos() {
+        return minPosition;
+    }
+
+    public void goToMaxPos() {
+        setPosition(maxPosition);
+    }
+
+    public void goToMinPos() {
+        setPosition(minPosition);
     }
 }

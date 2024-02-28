@@ -41,4 +41,7 @@ public class CustomButton {
     public double getTimeUp() {
         return timeSinceUp.seconds();
     }
+    public String getName() {
+        return button.toString().toLowerCase();
+    }
 }

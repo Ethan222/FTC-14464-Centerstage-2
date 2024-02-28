@@ -3,19 +3,30 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Outtake {
-    public CustomServo[] servos;
-    public Outtake(HardwareMap hardwareMap, String[] servoNames) {
-        servos = new CustomServo[servoNames.length];
-        servos[0] = new CustomServo(hardwareMap, servoNames[0], .58, .78);
-        servos[1] = new CustomServo(hardwareMap, servoNames[1], 0, 1);
-        servos[2] = new CustomServo(hardwareMap, servoNames[2], 0, 1);
-        servos[3] = new CustomServo(hardwareMap, servoNames[3], .15, .7);
+    public CustomServo flipper, extender, armRotator, pixelRotator, releaser;
+    private final CustomServo[] servos;
+    public Outtake(HardwareMap hardwareMap, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
+        flipper = new CustomServo("flipper", hardwareMap, flipperName, .6, .78);
+        extender = new CustomServo("extender", hardwareMap, extenderName, .15, .69);
+        armRotator = new CustomServo("armRotator", hardwareMap, armRotatorName, .33, .64);
+        pixelRotator = new CustomServo("pixelRotator", hardwareMap, pixelRotatorName, 0, 1);
+        releaser = new CustomServo("releaser", hardwareMap, releaserName, .1, .9);
+        flipper.setPosition(flipper.getMinPos());
+        extender.setPosition(extender.getMinPos());
+        armRotator.setPosition(.47);
+        pixelRotator.setPosition(.65);
+        servos = new CustomServo[]{flipper, extender, armRotator, pixelRotator, releaser};
     }
     public String getTelemetry() {
         StringBuilder ret = new StringBuilder();
         for (int i = 0; i < 4; i++) {
-            ret.append(String.format("\n servo %d: %.2f", i, servos[i].getPosition()));
+            ret.append("\n").append(servos[i].getTelemetry());
         }
         return ret.toString();
+    }
+
+    public void update() {
+        for(CustomServo servo : servos)
+            servo.update();
     }
 }
