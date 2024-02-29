@@ -1,0 +1,12 @@
+package org.firstinspires.ftc.teamcode.subsystems;
+
+public class Rotator extends CustomServo {
+  private final double CENTER_POS;
+  public Rotator(String name, HardwareMap hardwareMap, String id, double minPos, double maxPos, double centerPos) {
+    super(name, hardwareMap, id, minPos, maxPos);
+    CENTER_POS = centerPos;
+  }
+  public void center() {
+    setPosition(CENTER_POS);
+  }
+}
