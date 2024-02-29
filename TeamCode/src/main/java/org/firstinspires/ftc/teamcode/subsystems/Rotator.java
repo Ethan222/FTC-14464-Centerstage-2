@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
 public class Rotator extends CustomServo {
   private final double CENTER_POS;
   public Rotator(String name, HardwareMap hardwareMap, String id, double minPos, double maxPos, double centerPos) {
