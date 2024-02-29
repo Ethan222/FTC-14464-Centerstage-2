@@ -108,13 +108,12 @@ public class Tele extends LinearOpMode {
                 robot.outtake.extender.goToMinPos();
                 robot.outtake.flipper.goToMinPos();
             }
-            robot.outtake.extender.rotateBy(-gamepad2.left_stick_y / 100);
+            robot.outtake.flipper.rotateBy(-gamepad2.left_stick_y / 100);
+            robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 100);
             robot.outtake.armRotator.rotateBy(gamepad2.left_stick_x / 500);
             robot.outtake.pixelRotator.rotateBy(gamepad2.right_stick_x / 100);
             if(gamepad2.a)
-                robot.outtake.releaser.goToMinPos();
-            else if(gamepad1.b)
-                robot.outtake.releaser.goToMaxPos();
+                robot.outtake.release();
 
 //            List<Action> newActions = new ArrayList<>();
 //            for(Action action : runningActions) {
