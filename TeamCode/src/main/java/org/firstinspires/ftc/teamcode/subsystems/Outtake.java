@@ -5,17 +5,36 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 public class Outtake {
     public CustomServo flipper, extender, armRotator, pixelRotator, releaser;
     private final CustomServo[] servos;
+    private final ScheduledExecutorService scheduler;
     public Outtake(HardwareMap hardwareMap, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
         flipper = new CustomServo("flipper", hardwareMap, flipperName, .59, .78);
         extender = new CustomServo("extender", hardwareMap, extenderName, .15, .69);
-        armRotator = new CustomServo("armRotator", hardwareMap, armRotatorName, .33, .64);
-        pixelRotator = new CustomServo("pixelRotator", hardwareMap, pixelRotatorName, 0, 1);
+        armRotator = new Rotator("armRotator", hardwareMap, armRotatorName, .33, .64, .48);
+        pixelRotator = new Rotator("pixelRotator", hardwareMap, pixelRotatorName, 0, 1, .68);
         releaser = new CustomServo("releaser", hardwareMap, releaserName, .1, .9);
         flipper.setPosition(flipper.getMinPos());
         extender.setPosition(extender.getMinPos());
         armRotator.setPosition(.48);
         pixelRotator.setPosition(.68);
         servos = new CustomServo[]{flipper, extender, armRotator, pixelRotator, releaser};
+        scheduler = Executors.newSingleThreadExecutor();
+    }
+    public void raise() {
+        flipper.goToMaxPosition();
+        scheduler.schedule(extender::goToMaxPosition, 250, TimeUnit.MILLISECONDS);
+    }
+    public void lower() {
+        center();
+        extender.goToMinPosition();
+        flipper.goToMinPosition();
+    }
+    public void center() {
+        armRotator.center();
+        pixelRotator.center();
+    }
+    public void release() {
+        releaser.goToMinPosition();
+        scheduler.schedule(releaser::goToMaxPosition, 1000, TimeUnit.MILLISECONDS);
     }
     public String getTelemetry() {
         StringBuilder ret = new StringBuilder();
