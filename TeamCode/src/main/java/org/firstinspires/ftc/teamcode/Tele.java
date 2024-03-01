@@ -16,6 +16,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
+import org.firstinspires.ftc.teamcode.enums.Alliance;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,11 +24,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-@TeleOp(group = "_tele")
+@TeleOp
 public class Tele extends LinearOpMode {
     private static boolean fieldCentric = false;
     private static final double WHEEL_SLOW_SPEED = .3;
     private static Pose2d startPose = new Pose2d(0, 0, 0);
+    private static Alliance alliance = Alliance.BLUE;
 
     private Robot robot;
 //    private MecanumDrive drive;
@@ -113,7 +115,7 @@ public class Tele extends LinearOpMode {
         }
         double rotation = 0;
         if(fieldCentric)
-            rotation = robot.drive.pose.heading.toDouble() - Math.PI / 2;
+            rotation = (robot.drive.pose.heading.toDouble() - Math.PI / 2) * (alliance == Alliance.RED ? 1 : -1);
         robot.drive.setDrivePowers(new PoseVelocity2d(
             rotate(new Vector2d(-gamepad1.left_stick_y, -gamepad1.left_stick_x), rotation),
             -gamepad1.right_stick_x
@@ -138,20 +140,31 @@ public class Tele extends LinearOpMode {
             if (driver2.isDown(Button.DPAD_UP)) robot.outtake.raise();
             else if (driver2.isDown(Button.DPAD_DOWN))
                 runningActions.add(robot.outtake.lower());
-            robot.outtake.flipper.rotateBy(-gamepad2.left_stick_y / 300);
-            robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 100);
+            if (Math.Abs(gamepad2.left_stick_y) > Math.Abs(gamepad2.left_stick_x))
+                robot.outtake.flipper.rotateBy(-gamepad2.left_stick_y / 300);
+            if (Math.Abs(gamepad2.right_stick_y) > Math.Abs(gamepad2.right_stick_x))
+                robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 100);
         }
-//        robot.outtake.armRotator.rotateBy(gamepad2.left_stick_x / 200);
-//        if(gamepad2.left_stick_button && gamepad2.start) {
-//            robot.outtake.armRotator.setCenterPos();
-//            Telemetry.Item item = telemetry.addData("arm rotator", "center pos set").setRetained(true);
-//            executorService.schedule(() -> item.setRetained(false), 1, TimeUnit.SECONDS);
+        if (Math.Abs(gamepad2.left_stick_x) > Math.Abs(left_stick_y))
+            robot.outtake.armRotator.rotateBy(gamepad2.left_stick_x / 200);
+        if(Math.Abs(gamepad2.right_stick_x) > Math.Abs(gamepad2.right_stick_y))
+            robot.outtake.pixelRotator.rotateBy(gamepad2.right_stick_x / 100);
+        if(gamepad2.left_stick_button) {
+            if(gamepad2.start) {
+                robot.outtake.armRotator.setCenterPos();
+                telemetry.log().add("arm rotator center pos set");
+                executorService.schedule(telemetry.log()::clear, 1, TimeUnit.SECONDS);
+            } else robot.outtake.armRotator.center();
+        }
+        if(gamepad2.right_stick_button) {
+            if(gamepad2.start) {
+                
+            } else robot.outtake.pixelRotator.center();
+        }
+//        if(!driver2.isDown(Button.DPAD_UP) && !driver2.isDown(DPAD_DOWN)) {
+//            if(driver2.isDown(Button.DPAD_RIGHT)) robot.outtake.moveRight();
+//            else if(driver2.isDown(Button.DPAD_LEFT)) robot.outtake.moveLeft();
 //        }
-//        robot.outtake.pixelRotator.rotateBy(gamepad2.right_stick_x / 100);
-//        if(gamepad2.left_stick_button) robot.outtake.armRotator.center();
-//        if(gamepad2.right_stick_button) robot.outtake.pixelRotator.center();
-//        if(driver2.isDown(Button.DPAD_RIGHT)) robot.outtake.moveRight();
-//        else if(driver2.isDown(Button.DPAD_LEFT)) robot.outtake.moveLeft();
         if(driver2.isDown(Button.A)) robot.outtake.release();
 
         // hang
@@ -168,10 +181,9 @@ public class Tele extends LinearOpMode {
         double angle = Math.atan(orig.y / orig.x) + rotation;
         return new Vector2d(magnitude * Math.cos(angle), magnitude * Math.sin(angle));
         /*
-        double rx = (this.x * Math.cos(n)) - (this.y * Math.sin(n));
-        double ry = (this.x * Math.sin(n)) + (this.y * Math.cos(n));
-        x = rx;
-        y = ry;
+        double newX = (this.x * Math.cos(n)) - (this.y * Math.sin(n));
+        double newY = (this.x * Math.sin(n)) + (this.y * Math.cos(n));
+        return new Vector2d(newX, newY);
          */
     }
 }
