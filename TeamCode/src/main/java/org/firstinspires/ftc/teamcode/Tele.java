@@ -32,15 +32,15 @@ public class Tele extends LinearOpMode {
     private static Alliance alliance = Alliance.BLUE;
 
     private Robot robot;
-//    private MecanumDrive drive;
+    private MecanumDrive drive;
     private double speed = 1;
     private GamepadEx driver1, driver2;
     private CustomButton a, b, x, y, dpadUp, dpadDown, rb, lb;
     private FtcDashboard dash = FtcDashboard.getInstance();
     private List<Action> runningActions = new ArrayList<>();
     private ScheduledExecutorService executorService;
-    private MecanumDrive drive;
 
+    public static void setStartPose(Pose2d pose) { startPose = pose; }
     private void initialize() {
         robot = new Robot(hardwareMap, startPose);
         Motor fL = new Motor(hardwareMap, "FL", Motor.GoBILDA.RPM_435);
@@ -53,6 +53,8 @@ public class Tele extends LinearOpMode {
         driver2 = new GamepadEx(gamepad2);
 
         executorService = Executors.newSingleThreadScheduledExecutor();
+
+        alliance = Auto.getAlliance();
     }
 
     @Override public void runOpMode() throws InterruptedException {
