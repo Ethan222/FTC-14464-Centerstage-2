@@ -33,6 +33,15 @@ public class Auto extends LinearOpMode {
     private static final double MIN_INIT_TIME = 5.5, WAIT_TIME = 15;
     private double beginningWaitTime = 0;
     private Telemetry.Item status, propLocationTelemetry;
+
+    private class Trajectories {
+        public Pose2d startPose, backdropPose, stackPose, parkPose;
+        public static final Pose2d aprilTagOffset = new Pose2d(-7, 0, 0);
+        public Vector2d trussFront, trussBack;
+        public TrajectorySequence spikeMarkTraj, toAprilTagDetection, toBackdrop, parkTraj;
+        public TrajectorySequence frontToStack, frontToWait, stackToBackdrop, backdropToStack;
+    }
+
     @Override
     public void runOpMode() throws InterruptedException {
         initialize();
@@ -40,16 +49,35 @@ public class Auto extends LinearOpMode {
         double initTime = getRuntime();
         resetRuntime();
         telemetry.clearAll();
-        robot.outtake.close();
+        robot.outtake.releaser.close();
         if(!propLocationOverride && initTime < MIN_INIT_TIME) {
             beginningWaitTime = MIN_INIT_TIME - initTime;
             continueDetectingTeamProp(beginningWaitTime);
         } else if(side == Side.NEAR && wait) {
             beginningWaitTime = WAIT_TIME;
-            wait(beginningWaitTime);
+            wait();
         }
         propDetector.stopDetecting();
         
+        telemetry.clearAll();
+        telemetry.setAutoClear(false);
+        telemetry.addData("Running", "%s %s,  prop location = %s", alliance, side, propLocation);
+        if(wait)
+            telemetry.addLine("WAIT");
+        if(side == Side.FAR || pickFromStack)
+            telemetry.addLine("Go through " + (goThroughStageDoor ? "stage door" : "truss by wall"));
+        telemetry.addLine((placeOnBackdrop ? "Place" : "Don't place") + " on backdrop");
+        if(pickFromStack)
+            telemetry.addLine("Pick from stack");
+        if(placeOnBackdrop)
+            telemetry.addLine((useAprilTags ? "Use" : "Don't use") + " april tags");
+        if((!wait && !pickFromStack) || !placeOnBackdrop)
+            telemetry.addData("Park in", parkPosition);
+        if(debugMode)
+            telemetry.addLine("DEBUG");
+        status = telemetry.addData("\nStatus", "loading...");
+        telemetry.update();
+
         generateTrajectories();
         //robot.initDrive(startPose);
 
@@ -167,7 +195,7 @@ public class Auto extends LinearOpMode {
             propLocationOverride = false;
 
         // PRELOAD
-        
+        if(gamepad2.dpad_down) robot.outtake.releaser.open();
     }
     private void detectTeamProp() {
         propDetector.update();
@@ -184,10 +212,9 @@ public class Auto extends LinearOpMode {
             telemetry.update();
         }
     }
-    private void wait(double waitTime) {
-        ElapsedTime timer = new ElapsedTime();
-        status.setValue("waiting...%.1f", () -> waitTime - timer.seconds());
-        while(timer.seconds() < waitTime && opModeIsActive())
+    private void wait() {
+        status.setValue("waiting...%.1f", () -> WAIT_TIME - getRuntime());
+        while(getRuntime() < WAIT_TIME && opModeIsActive())
             telemetry.update();
     }
     private void generateTrajectories() {}

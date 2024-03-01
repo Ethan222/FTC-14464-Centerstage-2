@@ -7,7 +7,6 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.teamcode.CustomButton;
 
 public class CustomServo {
-    public final String name;
     private final Servo servo;
     private final double minPosition, maxPosition;
     private CustomButton button1, button2;
@@ -15,8 +14,7 @@ public class CustomServo {
     public static final double singleRotateAmount = .02, continuousRotateAmount = .004;
     private static final double INCREMENT = .01;
 
-    public CustomServo(String name, HardwareMap hardwareMap, String id, double minPos, double maxPos) {
-        this.name = name;
+    public CustomServo(HardwareMap hardwareMap, String id, double minPos, double maxPos) {
         servo = hardwareMap.get(Servo.class, id);
         minPosition = minPos;
         maxPosition = maxPos;
