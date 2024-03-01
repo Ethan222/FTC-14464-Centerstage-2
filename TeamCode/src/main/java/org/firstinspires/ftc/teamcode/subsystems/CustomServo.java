@@ -13,6 +13,8 @@ public class CustomServo {
     private CustomButton button1, button2;
     public static final double downTime = .4, doubleTapTime = .15;
     public static final double singleRotateAmount = .02, continuousRotateAmount = .004;
+    private static final double INCREMENT = .01;
+
     public CustomServo(String name, HardwareMap hardwareMap, String id, double minPos, double maxPos) {
         this.name = name;
         servo = hardwareMap.get(Servo.class, id);
@@ -22,8 +24,8 @@ public class CustomServo {
     public void setPosition(double pos) {
         servo.setPosition(Range.clip(pos, minPosition, maxPosition));
     }
-    public void rotateBy(double delta) {
-        setPosition(getPosition() + delta);
+    public void rotateBy(double change) {
+        setPosition(getPosition() + change);
     }
     public void setButtons(CustomButton b1, CustomButton b2) {
         button1 = b1;
@@ -51,7 +53,7 @@ public class CustomServo {
         return servo.getPosition();
     }
     public String getTelemetry() {
-        return String.format("%.2f", getPosition());
+        return String.format("%.3f", getPosition());
     }
 
     public double getMinPos() {
@@ -64,5 +66,15 @@ public class CustomServo {
 
     public void goToMinPos() {
         setPosition(minPosition);
+    }
+
+    public double getIncrement() {
+        return INCREMENT;
+    }
+    public void rotateIncrementally() {
+        rotateBy(getIncrement());
+    }
+    public void unrotateIncrementally() {
+        rotateBy(-getIncrement());
     }
 }

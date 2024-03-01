@@ -7,7 +7,7 @@ public class Intake {
 //    private final ServoEx lowerer;
 
     public Intake(HardwareMap hardwareMap, String motorName, String servoName) {
-        motor = new Motor(hardwareMap, motorName);
+        motor = new Motor(hardwareMap, motorName, true);
 //        lowerer = hardwareMap.get(ServoEx.class, servoName);
 //        lowerer.setRange(.5, 1);
 //        lowerer.setInverted(true);

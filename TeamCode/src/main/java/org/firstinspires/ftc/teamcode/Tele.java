@@ -1,20 +1,24 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
+import com.arcrobotics.ftclib.drivebase.MecanumDrive;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys.Button;
+import com.arcrobotics.ftclib.gamepad.GamepadKeys.Trigger;
+import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -33,13 +37,15 @@ public class Tele extends LinearOpMode {
     private FtcDashboard dash = FtcDashboard.getInstance();
     private List<Action> runningActions = new ArrayList<>();
     private ScheduledExecutorService executorService;
+    private MecanumDrive drive;
+
     private void initialize() {
         robot = new Robot(hardwareMap, startPose);
-//        Motor fL = new Motor(hardwareMap, "FL");
-//        Motor fR = new Motor(hardwareMap, "FR");
-//        Motor bL = new Motor(hardwareMap, "BL");
-//        Motor bR = new Motor(hardwareMap, "BR");
-//        drive = new MecanumDrive(fL, fR, bL, bR);
+        Motor fL = new Motor(hardwareMap, "FL", Motor.GoBILDA.RPM_435);
+        Motor fR = new Motor(hardwareMap, "FR", Motor.GoBILDA.RPM_435);
+        Motor bL = new Motor(hardwareMap, "BL", Motor.GoBILDA.RPM_435);
+        Motor bR = new Motor(hardwareMap, "BR", Motor.GoBILDA.RPM_435);
+        drive = new MecanumDrive(fL, fR, bL, bR);
 
         driver1 = new GamepadEx(gamepad1);
         driver2 = new GamepadEx(gamepad2);
@@ -54,19 +60,18 @@ public class Tele extends LinearOpMode {
         initialize();
 
         telemetry.addLine("Initialized");
-//        telemetry.addData("Drive field centric (RT/LT)", () -> fieldCentric);
+        telemetry.addData("field centric (RB/LB)", () -> fieldCentric);
         while (opModeInInit()) {
-//            if(gamepad1.right_trigger > .5)
-//                fieldCentric = true;
-//            else if(gamepad1.left_trigger > .5)
-//                fieldCentric = false;
+            if(gamepad1.right_bumper)
+                fieldCentric = true;
+            else if(gamepad1.left_bumper)
+                fieldCentric = false;
 
             if((gamepad1.start && gamepad2.back) || (gamepad2.start && gamepad2.back))
                 requestOpModeStop();
 
             telemetry.update();
         }
-        telemetry.log().clear();
 
 //        telemetry.addData("Wheel speed (RB)", () -> speed);
         telemetry.addData("\nintake (RT/LT)", robot.intake::getTelemetry);
@@ -75,54 +80,98 @@ public class Tele extends LinearOpMode {
         telemetry.addData(" extender (dpad up/down)", robot.outtake.extender::getTelemetry);
         telemetry.addData(" arm rotator (left stick x)", robot.outtake.armRotator::getTelemetry);
         telemetry.addData(" pixel rotator (right stick x)", robot.outtake.pixelRotator::getTelemetry);
-        telemetry.addData(" releaser (a/b)", robot.outtake.pixelRotator::getTelemetry);
+        telemetry.addData(" releaser (a)", robot.outtake.releaser::getTelemetry);
+        telemetry.addData("launcher (RB/LB)", robot.launcher::getTelemetry);
 
         while (opModeIsActive()) {
-            if((gamepad1.start && gamepad2.back) || (gamepad2.start && gamepad2.back))
-                requestOpModeStop();
-            if(gamepad2.start && gamepad2.x)
-                telemetry.log().clear();
+            getGamepadInput();
 
-            // drive
-            robot.drive.setDrivePowers(new PoseVelocity2d(
-                    new Vector2d(
-                            -gamepad1.left_stick_y,
-                            -gamepad1.left_stick_x
-                    ),
-                    -gamepad1.right_stick_x
-            ));
-            robot.drive.updatePoseEstimate();
-
-            // intake
-            if(gamepad2.right_trigger > 0)
-                robot.intake.in(gamepad2.right_trigger);
-            else if(gamepad2.left_trigger > 0)
-                robot.intake.out(gamepad2.left_trigger);
-            else robot.intake.stop();
-
-            // outtake
-            if(gamepad2.dpad_up) {
-                robot.outtake.flipper.goToMaxPos();
-                executorService.schedule(robot.outtake.extender::goToMaxPos, 200, TimeUnit.MILLISECONDS);
-            } else if(gamepad2.dpad_down) {
-                robot.outtake.extender.goToMinPos();
-                robot.outtake.flipper.goToMinPos();
+            List<Action> newActions = new ArrayList<>();
+            for(Action action : runningActions) {
+                if(action.run(new TelemetryPacket()))
+                    newActions.add(action);
             }
-            robot.outtake.flipper.rotateBy(-gamepad2.left_stick_y / 100);
-            robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 100);
-            robot.outtake.armRotator.rotateBy(gamepad2.left_stick_x / 500);
-            robot.outtake.pixelRotator.rotateBy(gamepad2.right_stick_x / 100);
-            if(gamepad2.a)
-                robot.outtake.release();
-
-//            List<Action> newActions = new ArrayList<>();
-//            for(Action action : runningActions) {
-//                if(action.run(new TelemetryPacket()))
-//                    newActions.add(action);
-//            }
-//            runningActions = newActions;
+            runningActions = newActions;
 
             telemetry.update();
         }
+    }
+
+    private void getGamepadInput() {
+        if((gamepad1.start && gamepad2.back) || (gamepad2.start && gamepad2.back))
+            requestOpModeStop();
+
+        if(gamepad1.back && driver2 != driver1) driver2 = driver1;
+        else if(driver2 == driver1) driver2 = new GamepadEx(gamepad2);
+
+        // drive
+        if(!gamepad1.back) {
+            if(gamepad1.right_bumper)
+                fieldCentric = true;
+            else if(gamepad1.left_bumper)
+                fieldCentric = false;
+        }
+        double rotation = 0;
+        if(fieldCentric)
+            rotation = robot.drive.pose.heading.toDouble() - Math.PI / 2;
+        robot.drive.setDrivePowers(new PoseVelocity2d(
+            rotate(new Vector2d(-gamepad1.left_stick_y, -gamepad1.left_stick_x), rotation),
+            -gamepad1.right_stick_x
+        ));
+        robot.drive.updatePoseEstimate();
+
+        // intake
+        if(driver2.getTrigger(Trigger.RIGHT_TRIGGER) > 0)
+            robot.intake.in(driver2.getTrigger(Trigger.RIGHT_TRIGGER));
+        else if(driver2.getTrigger(Trigger.LEFT_TRIGGER) > 0)
+            robot.intake.out(driver2.getTrigger(Trigger.LEFT_TRIGGER));
+        else robot.intake.stop();
+
+        // outtake
+        if(gamepad2.back) {
+            if (gamepad2.dpad_up)
+                robot.outtake.flipper.rotateIncrementally();
+            else if (gamepad2.dpad_down)
+                robot.outtake.flipper.unrotateIncrementally();
+            robot.outtake.motor.setPower(-gamepad2.left_stick_y);
+        } else {
+            if (driver2.isDown(Button.DPAD_UP)) robot.outtake.raise();
+            else if (driver2.isDown(Button.DPAD_DOWN))
+                runningActions.add(robot.outtake.lower());
+            robot.outtake.flipper.rotateBy(-gamepad2.left_stick_y / 300);
+            robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 100);
+        }
+//        robot.outtake.armRotator.rotateBy(gamepad2.left_stick_x / 200);
+//        if(gamepad2.left_stick_button && gamepad2.start) {
+//            robot.outtake.armRotator.setCenterPos();
+//            Telemetry.Item item = telemetry.addData("arm rotator", "center pos set").setRetained(true);
+//            executorService.schedule(() -> item.setRetained(false), 1, TimeUnit.SECONDS);
+//        }
+//        robot.outtake.pixelRotator.rotateBy(gamepad2.right_stick_x / 100);
+//        if(gamepad2.left_stick_button) robot.outtake.armRotator.center();
+//        if(gamepad2.right_stick_button) robot.outtake.pixelRotator.center();
+//        if(driver2.isDown(Button.DPAD_RIGHT)) robot.outtake.moveRight();
+//        else if(driver2.isDown(Button.DPAD_LEFT)) robot.outtake.moveLeft();
+        if(driver2.isDown(Button.A)) robot.outtake.release();
+
+        // hang
+//        if(driver2.isDown(Button.BACK))
+//            robot.hang.setPower(-driver2.getRightY());
+
+        // launcher
+        if(driver2.isDown(Button.RIGHT_BUMPER)) robot.launcher.rotate();
+        else if(driver2.isDown(Button.LEFT_BUMPER)) robot.launcher.unrotate();
+    }
+
+    private Vector2d rotate(Vector2d orig, double rotation) {
+        double magnitude = Math.abs(Math.pow(orig.x, 2) + Math.pow(orig.y, 2));
+        double angle = Math.atan(orig.y / orig.x) + rotation;
+        return new Vector2d(magnitude * Math.cos(angle), magnitude * Math.sin(angle));
+        /*
+        double rx = (this.x * Math.cos(n)) - (this.y * Math.sin(n));
+        double ry = (this.x * Math.sin(n)) + (this.y * Math.cos(n));
+        x = rx;
+        y = ry;
+         */
     }
 }

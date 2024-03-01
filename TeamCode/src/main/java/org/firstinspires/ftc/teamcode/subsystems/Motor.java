@@ -14,8 +14,13 @@ public class Motor {
   protected DcMotor motor;
   private final static double DEFAULT_ACCELERATION = .2;
 
-  public Motor(HardwareMap hardwareMap, String name) {
+  public Motor(HardwareMap hardwareMap, String name, boolean reversed) {
     motor = hardwareMap.get(DcMotor.class, name);
+    if(reversed)
+      reverseDirection();
+  }
+  public Motor(HardwareMap hardwareMap, String name) {
+    this(hardwareMap, name, false);
   }
 
   public double getPower() {

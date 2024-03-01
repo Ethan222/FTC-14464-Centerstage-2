@@ -9,10 +9,13 @@ public class Robot {
     public org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive drive;
     public Intake intake;
     public Outtake outtake;
-
+    public Hang hang;
+    public Launcher launcher;
     public Robot(HardwareMap hardwareMap, Pose2d startPose) {
         drive = new MecanumDrive(hardwareMap, startPose);
-        intake = new Intake(hardwareMap, "motor0", "");
-        outtake = new Outtake(hardwareMap, "servo0", "servo1", "servo2", "servo3", "servo4");
+        intake = new Intake(hardwareMap, "intake", "");
+        outtake = new Outtake(hardwareMap,"motor1","servo0","servo1","servo2","servo4","servo3");
+        hang = new Hang(hardwareMap, "motor0");
+        launcher = new Launcher(hardwareMap, "launcher");
     }
 }
