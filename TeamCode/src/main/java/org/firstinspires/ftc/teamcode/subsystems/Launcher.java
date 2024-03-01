@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 public class Launcher extends CustomServo {
     private static final double INCREMENT = .005;
     public Launcher(HardwareMap hardwareMap, String id) {
-        super("launcher", hardwareMap, id, 0, 1);
+        super(hardwareMap, id, 0, 1);
     }
 
     public void rotate() {

@@ -1,17 +1,14 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.teamcode.CustomButton;
-
 public class CustomServo {
+    private static final double DEFAULT_SPEED = .01;
     private final Servo servo;
     private final double minPosition, maxPosition;
-    private CustomButton button1, button2;
-    public static final double downTime = .4, doubleTapTime = .15;
-    public static final double singleRotateAmount = .02, continuousRotateAmount = .004;
     private static final double INCREMENT = .01;
 
     public CustomServo(HardwareMap hardwareMap, String id, double minPos, double maxPos) {
@@ -24,27 +21,6 @@ public class CustomServo {
     }
     public void rotateBy(double change) {
         setPosition(getPosition() + change);
-    }
-    public void setButtons(CustomButton b1, CustomButton b2) {
-        button1 = b1;
-        button2 = b2;
-    }
-    public void update() {
-        button1.update();
-        button2.update();
-        if (button1.getState() == CustomButton.State.JUST_DOWN) {
-            if(button1.getTimeUp() < doubleTapTime)
-                setPosition(maxPosition);
-            else
-                rotateBy(singleRotateAmount);
-        } else if (button1.getState() == CustomButton.State.DOWN && button1.getTimeDown() > downTime)
-            rotateBy(continuousRotateAmount);
-        else if (button2.getState() == CustomButton.State.JUST_DOWN) {
-            if(button2.getTimeUp() < doubleTapTime)
-                setPosition(minPosition);
-            else rotateBy(-singleRotateAmount);
-        } else if(button2.getState() == CustomButton.State.DOWN && button2.getTimeDown() > downTime)
-            rotateBy(-continuousRotateAmount);
     }
 
     public double getPosition() {
@@ -65,6 +41,9 @@ public class CustomServo {
     public void goToMinPos() {
         setPosition(minPosition);
     }
+    public Action goToMinPosWithActions() {
+        return goToPos(minPosition);
+    }
 
     public double getIncrement() {
         return INCREMENT;
@@ -74,5 +53,17 @@ public class CustomServo {
     }
     public void unrotateIncrementally() {
         rotateBy(-getIncrement());
+    }
+
+    public Action goToPos(double pos, double speed) {
+        return telemetryPacket -> {
+            if(Math.abs(pos - getPosition()) < .001)
+                return false;
+            rotateBy(pos > getPosition() ? speed : -speed);
+            return true;
+        };
+    }
+    public Action goToPos(double pos) {
+        return goToPos(pos, DEFAULT_SPEED);
     }
 }

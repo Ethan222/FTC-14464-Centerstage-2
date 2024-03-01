@@ -25,4 +25,9 @@ public class Robot {
     public void initDrive(HardwareMap hardwareMap, Pose2d startPose) {
         drive = new MecanumDrive(hardwareMap, startPose);
     }
+
+    public void prepareForIntake() {
+        outtake.center();
+        outtake.releaser.close();
+    }
 }

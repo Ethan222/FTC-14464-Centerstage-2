@@ -1,5 +1,12 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.InstantAction;
+import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.SequentialAction;
+import com.acmerobotics.roadrunner.SleepAction;
+import com.acmerobotics.roadrunner.Vector2d;
+import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -29,17 +36,17 @@ public class Auto extends LinearOpMode {
     private Location propLocation;
     private ElapsedTime timer;
     private ScheduledExecutorService executorService;
-    private boolean initialized = false, propLocationOverride = false;
+    private boolean initialized = false, propLocationOverride = true;
     private static final double MIN_INIT_TIME = 5.5, WAIT_TIME = 15;
     private double beginningWaitTime = 0;
     private Telemetry.Item status, propLocationTelemetry;
 
-    private class Trajectories {
-        public Pose2d startPose, backdropPose, stackPose, parkPose;
-        public static final Pose2d aprilTagOffset = new Pose2d(-7, 0, 0);
+    private static class Trajectories {
+        public static Pose2d startPose, backdropPose, stackPose, parkPose;
+        public final Pose2d aprilTagOffset = new Pose2d(-7, 0, 0);
         public Vector2d trussFront, trussBack;
-        public TrajectorySequence spikeMarkTraj, toAprilTagDetection, toBackdrop, parkTraj;
-        public TrajectorySequence frontToStack, frontToWait, stackToBackdrop, backdropToStack;
+//        public TrajectorySequence spikeMarkTraj, toAprilTagDetection, toBackdrop, parkTraj;
+//        public TrajectorySequence frontToStack, frontToWait, stackToBackdrop, backdropToStack;
     }
 
     @Override
@@ -55,10 +62,12 @@ public class Auto extends LinearOpMode {
             continueDetectingTeamProp(beginningWaitTime);
         } else if(side == Side.NEAR && wait) {
             beginningWaitTime = WAIT_TIME;
-            wait();
+            waitWithTelemetry();
         }
-        propDetector.stopDetecting();
-        
+        try {
+            propDetector.stopDetecting();
+        } catch (Exception ignored) {}
+
         telemetry.clearAll();
         telemetry.setAutoClear(false);
         telemetry.addData("Running", "%s %s,  prop location = %s", alliance, side, propLocation);
@@ -79,7 +88,18 @@ public class Auto extends LinearOpMode {
         telemetry.update();
 
         generateTrajectories();
-        //robot.initDrive(startPose);
+        robot.initDrive(hardwareMap, Trajectories.startPose);
+
+        Action trajectoryAction1 = robot.drive.actionBuilder(robot.drive.pose)
+                .lineToY(38)
+                .build();
+        Actions.runBlocking(new SequentialAction(
+                new InstantAction(() -> robot.intake.out(1)),
+                trajectoryAction1,
+//                new InstantAction(robot.intake::out),
+                new SleepAction(1.5),
+                new InstantAction(robot.intake::stop)
+        ));
 
         Tele.setStartPose(robot.drive.pose);
     }
@@ -88,7 +108,9 @@ public class Auto extends LinearOpMode {
         telemetry.update();
 
         robot = new Robot(hardwareMap);
-        propDetector = new TensorFlowObjectDetector(hardwareMap);
+        try {
+            propDetector = new TensorFlowObjectDetector(hardwareMap);
+        } catch(Exception ignored) {}
         propLocation = Location.LEFT;
         timer = new ElapsedTime();
         executorService = Executors.newSingleThreadScheduledExecutor();
@@ -105,8 +127,8 @@ public class Auto extends LinearOpMode {
     private void initLoop() {
         while(opModeInInit()) {
             if(!initialized) {
-                if(getRunTime() < MIN_INIT_TIME)
-                    status.setValue("initializing...%.1f", MIN_INIT_TIME - getRunTime());
+                if(getRuntime() < MIN_INIT_TIME)
+                    status.setValue("initializing...%.1f", MIN_INIT_TIME - getRuntime());
                 else {
                     initialized = true;
                     status.setValue("initialized");
@@ -212,11 +234,13 @@ public class Auto extends LinearOpMode {
             telemetry.update();
         }
     }
-    private void wait() {
+    private void waitWithTelemetry() {
         status.setValue("waiting...%.1f", () -> WAIT_TIME - getRuntime());
         while(getRuntime() < WAIT_TIME && opModeIsActive())
             telemetry.update();
     }
-    private void generateTrajectories() {}
+    private void generateTrajectories() {
+        Trajectories.startPose = (side == Side.NEAR) ? new Pose2d(12, 64, -Math.PI/2) : new Pose2d(-36, 64, -Math.PI/2);
+    }
     public static Alliance getAlliance() { return alliance; }
 }

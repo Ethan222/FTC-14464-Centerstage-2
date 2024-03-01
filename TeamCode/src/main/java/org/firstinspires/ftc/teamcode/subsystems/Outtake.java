@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.SequentialAction;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -12,30 +13,30 @@ public class Outtake {
     public final CustomServo extender;
     public final Rotator armRotator, pixelRotator;
     public final Releaser releaser;
-    private final CustomServo[] servos;
     private final ScheduledExecutorService executorService;
     public Outtake(HardwareMap hardwareMap, String motorName, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
         motor = new Motor(hardwareMap, motorName);
-        flipper = new Flipper(hardwareMap, flipperName, .57, .78);
-        extender = new CustomServo(hardwareMap, extenderName, .37, 1);
+        flipper = new Flipper(hardwareMap, flipperName, .57, 1);
+        extender = new CustomServo(hardwareMap, extenderName, .37, .95);
         armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .44, .005);
-        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .664, .008);
-        releaser = new Releaser(hardwareMap, releaserName, .5, .8);
+        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .66, .008);
+        releaser = new Releaser(hardwareMap, releaserName, .6, 1);
         //flipper.setPosition(flipper.getMinPos());
-        //extender.setPosition(extender.getMinPos());
-//        center();
-        servos = new CustomServo[]{flipper, extender, armRotator, pixelRotator, releaser};
+        extender.setPosition(extender.getMinPos());
+        center();
         executorService = Executors.newSingleThreadScheduledExecutor();
     }
     public void raise() {
-        flipper.goToMaxPos();
+        flipper.goToUpPosition();
         executorService.schedule(extender::goToMaxPos, 1400, TimeUnit.MILLISECONDS);
-//        center();
+        center();
     }
     public Action lower() {
-//        center();
-        extender.goToMinPos();
-        return flipper.unflip(.7);
+        center();
+        return new SequentialAction(
+                extender.goToMinPosWithActions(),
+                flipper.unflip()
+        );
     }
     public void center() {
         armRotator.center();
@@ -44,11 +45,6 @@ public class Outtake {
     public void release() {
         releaser.open();
         executorService.schedule(releaser::close, 1000, TimeUnit.MILLISECONDS);
-    }
-
-    public void update() {
-        for(CustomServo servo : servos)
-            servo.update();
     }
 
     public void moveRight() {
@@ -60,11 +56,11 @@ public class Outtake {
         pixelRotator.unrotateIncrementally();
     }
 
-    private class Rotator extends CustomServo {
+    public static class Rotator extends CustomServo {
         private double CENTER_POS;
         private final double INCREMENT;
-        public Rotator(String name, HardwareMap hardwareMap, String id, double minPos, double maxPos, double centerPos, double increment) {
-          super(name, hardwareMap, id, minPos, maxPos);
+        public Rotator(HardwareMap hardwareMap, String id, double minPos, double maxPos, double centerPos, double increment) {
+          super(hardwareMap, id, minPos, maxPos);
           CENTER_POS = centerPos;
           INCREMENT = increment;
         }
@@ -76,7 +72,7 @@ public class Outtake {
         }
         @Override public double getIncrement() { return INCREMENT; }
     }
-    private class Releaser extends CustomServo {
+    public static class Releaser extends CustomServo {
         public Releaser(HardwareMap hardwareMap, String id, double minPos, double maxPos) {
             super(hardwareMap, id, minPos, maxPos);
         }
