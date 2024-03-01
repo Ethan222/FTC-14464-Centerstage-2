@@ -36,14 +36,22 @@ public class Auto extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         initialize();
         initLoop();
+        
+        generateTrajectories();
+        //robot.initDrive(startPose);
+
+        Tele.setStartPose(robot.drive.pose);
     }
     private void initialize() {
         status = telemetry.addData("Status", "initializing...").setRetained(true);
         telemetry.update();
+
+        robot = new Robot(hardwareMap);
         propDetector = new TensorFlowObjectDetector(hardwareMap);
         propLocation = Location.LEFT;
         timer = new ElapsedTime();
         executorService = Executors.newSingleThreadScheduledExecutor();
+
         telemetry.addLine().addData("\nalliance", () -> alliance).addData("side", () -> side);
         telemetry.addData("wait (RB/LB)", () -> wait);
         telemetry.addData("go through stage door (LS)", () -> (side == Side.FAR || pickFromStack) ? goThroughStageDoor : "n/a");
@@ -55,6 +63,15 @@ public class Auto extends LinearOpMode {
     }
     private void initLoop() {
         while(opModeInInit()) {
+            if(!initialized) {
+                if(getRunTime() < MIN_INIT_TIME)
+                    status.setValue("initializing...%.1f", MIN_INIT_TIME - getRunTime());
+                else {
+                    initialized = true;
+                    status.setValue("initialized");
+                }
+            }
+
             getGamepadInput();
 
             if (!propLocationOverride) {
@@ -145,4 +162,6 @@ public class Auto extends LinearOpMode {
         telemetry.addLine();
         propDetector.telemetryAll(telemetry);
     }
+    private void generateTrajectories() {}
+    private Alliance getAlliance() { return alliance; }
 }
