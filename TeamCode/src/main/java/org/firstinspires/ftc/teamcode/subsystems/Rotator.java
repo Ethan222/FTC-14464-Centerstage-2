@@ -13,16 +13,8 @@ public class Rotator extends CustomServo {
   public void center() {
     setPosition(CENTER_POS);
   }
-
-  public void rotate() {
-    rotateBy(INCREMENT);
-  }
-
-  public void unrotate() {
-    rotateBy(-INCREMENT);
-  }
-
   public void setCenterPos() {
     CENTER_POS = getPosition();
   }
+  @Override public double getIncrement() { return INCREMENT; }
 }
