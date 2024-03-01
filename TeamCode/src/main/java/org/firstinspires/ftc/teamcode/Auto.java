@@ -31,11 +31,24 @@ public class Auto extends LinearOpMode {
     private ScheduledExecutorService executorService;
     private boolean initialized = false, propLocationOverride = false;
     private static final double MIN_INIT_TIME = 5.5, WAIT_TIME = 15;
+    private double beginningWaitTime = 0;
     private Telemetry.Item status, propLocationTelemetry;
     @Override
     public void runOpMode() throws InterruptedException {
         initialize();
         initLoop();
+        double initTime = getRuntime();
+        resetRuntime();
+        telemetry.clearAll();
+        robot.outtake.close();
+        if(!propLocationOverride && initTime < MIN_INIT_TIME) {
+            beginningWaitTime = MIN_INIT_TIME - initTime;
+            continueDetectingTeamProp(beginningWaitTime);
+        } else if(side == Side.NEAR && wait) {
+            beginningWaitTime = WAIT_TIME;
+            wait(beginningWaitTime);
+        }
+        propDetector.stopDetecting();
         
         generateTrajectories();
         //robot.initDrive(startPose);
@@ -75,13 +88,13 @@ public class Auto extends LinearOpMode {
             getGamepadInput();
 
             if (!propLocationOverride) {
+                propDetector.setAlliance(alliance);
                 detectTeamProp();
             }
 
             telemetry.update();
         }
     }
-
     private void getGamepadInput() {
         if((gamepad1.start && gamepad1.back) || (gamepad2.start && gamepad2.back))
             requestOpModeStop();
@@ -152,15 +165,30 @@ public class Auto extends LinearOpMode {
             propLocationTelemetry.setValue(propLocation + " (override)");
         } else if (gamepad2.back)
             propLocationOverride = false;
-    }
 
+        // PRELOAD
+        
+    }
     private void detectTeamProp() {
-        propDetector.setAlliance(alliance);
         propDetector.update();
         propLocation = propDetector.getLocation();
         propLocationTelemetry.setValue(propLocation);
         telemetry.addLine();
         propDetector.telemetryAll(telemetry);
+    }
+    private void continueDetectingTeamProp(double time) {
+        status.setValue("detecting prop location...%.1f", () -> time - getRuntime());
+        propLocationTelemetry = telemetry.addData("prop location", propLocation);
+        while(getRuntime() < time && opModeIsActive()) {
+            detectTeamProp();
+            telemetry.update();
+        }
+    }
+    private void wait(double waitTime) {
+        ElapsedTime timer = new ElapsedTime();
+        status.setValue("waiting...%.1f", () -> waitTime - timer.seconds());
+        while(timer.seconds() < waitTime && opModeIsActive())
+            telemetry.update();
     }
     private void generateTrajectories() {}
     public static Alliance getAlliance() { return alliance; }
