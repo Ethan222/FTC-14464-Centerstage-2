@@ -163,5 +163,5 @@ public class Auto extends LinearOpMode {
         propDetector.telemetryAll(telemetry);
     }
     private void generateTrajectories() {}
-    private Alliance getAlliance() { return alliance; }
+    public static Alliance getAlliance() { return alliance; }
 }
