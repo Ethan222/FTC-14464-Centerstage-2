@@ -7,10 +7,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Outtake {
-    public Motor motor;
-    public Flipper flipper;
-    public CustomServo extender, releaser;
-    public Rotator armRotator, pixelRotator;
+    public final Motor motor;
+    public final Flipper flipper;
+    public final CustomServo extender, releaser;
+    public final Rotator armRotator, pixelRotator;
     private final CustomServo[] servos;
     private final ScheduledExecutorService executorService;
     public Outtake(HardwareMap hardwareMap, String motorName, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
@@ -20,8 +20,8 @@ public class Outtake {
         armRotator = new Rotator("armRotator", hardwareMap, armRotatorName, 0, 1, .44, .005);
         pixelRotator = new Rotator("pixelRotator", hardwareMap, pixelRotatorName, 0, 1, .664, .008);
         releaser = new CustomServo("releaser", hardwareMap, releaserName, .5, .8);
-        flipper.setPosition(flipper.getMinPos());
-        extender.setPosition(extender.getMinPos());
+        //flipper.setPosition(flipper.getMinPos());
+        //extender.setPosition(extender.getMinPos());
 //        center();
         servos = new CustomServo[]{flipper, extender, armRotator, pixelRotator, releaser};
         executorService = Executors.newSingleThreadScheduledExecutor();
@@ -51,11 +51,11 @@ public class Outtake {
     }
 
     public void moveRight() {
-        armRotator.rotate();
-        pixelRotator.rotate();
+        armRotator.rotateIncrementally();
+        pixelRotator.rotateIncrementally();
     }
     public void moveLeft() {
-        armRotator.unrotate();
-        pixelRotator.unrotate();
+        armRotator.unrotateIncrementally();
+        pixelRotator.unrotateIncrementally();
     }
 }
