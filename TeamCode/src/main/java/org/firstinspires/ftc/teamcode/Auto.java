@@ -41,12 +41,16 @@ public class Auto extends LinearOpMode {
     private double beginningWaitTime = 0;
     private Telemetry.Item status, propLocationTelemetry;
 
-    private static class Trajectories {
-        public static Pose2d startPose, backdropPose, stackPose, parkPose;
-        public final Pose2d aprilTagOffset = new Pose2d(-7, 0, 0);
+    private class Trajectories {
+        public static final backdropPose, stackPose;
+        public static final Pose2d aprilTagOffset = new Pose2d(-7, 0, 0);
+        public Pose2d startPose, parkPose;
         public Vector2d trussFront, trussBack;
-//        public TrajectorySequence spikeMarkTraj, toAprilTagDetection, toBackdrop, parkTraj;
-//        public TrajectorySequence frontToStack, frontToWait, stackToBackdrop, backdropToStack;
+        public Action spikeMarkTraj, toAprilTagDetection, toBackdrop, parkTraj;
+        public Action frontToStack, frontToWait, stackToBackdrop, backdropToStack;
+        public Trajectories() {
+            startPose = (side == Side.NEAR) ? new Pose2d(12, 64, -Math.PI/2) : new Pose2d(-36, 64, -Math.PI/2);
+        }
     }
 
     @Override
@@ -87,8 +91,8 @@ public class Auto extends LinearOpMode {
         status = telemetry.addData("\nStatus", "loading...");
         telemetry.update();
 
-        generateTrajectories();
-        robot.initDrive(hardwareMap, Trajectories.startPose);
+        Trajectories trajectories = new Trajectories.
+        robot.initDrive(hardwareMap, trajectories.startPose);
 
         Action trajectoryAction1 = robot.drive.actionBuilder(robot.drive.pose)
                 .lineToY(38)
@@ -238,9 +242,6 @@ public class Auto extends LinearOpMode {
         status.setValue("waiting...%.1f", () -> WAIT_TIME - getRuntime());
         while(getRuntime() < WAIT_TIME && opModeIsActive())
             telemetry.update();
-    }
-    private void generateTrajectories() {
-        Trajectories.startPose = (side == Side.NEAR) ? new Pose2d(12, 64, -Math.PI/2) : new Pose2d(-36, 64, -Math.PI/2);
     }
     public static Alliance getAlliance() { return alliance; }
 }
