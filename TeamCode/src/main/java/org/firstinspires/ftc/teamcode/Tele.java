@@ -40,7 +40,7 @@ public class Tele extends LinearOpMode {
 
     public static void setStartPose(Pose2d pose) { startPose = pose; }
     private void initialize() {
-        robot = new Robot(hardwareMap, startPose);
+        robot = new Robot(hardwareMap, startPose, telemetry);
 
         Motor fL = new Motor(hardwareMap, "FL", Motor.GoBILDA.RPM_435);
         Motor fR = new Motor(hardwareMap, "FR", Motor.GoBILDA.RPM_435);
@@ -67,6 +67,7 @@ public class Tele extends LinearOpMode {
         telemetry.addLine("Initialized");
         telemetry.addData("field centric (RB/LB)", () -> fieldCentric);
         telemetry.addData("alliance (x/b)", () -> alliance);
+        telemetry.addData("start pos", poseToString(startPose));
         while (opModeInInit()) {
             if(gamepad1.right_bumper)
                 fieldCentric = true;
@@ -78,6 +79,7 @@ public class Tele extends LinearOpMode {
 
             telemetry.update();
         }
+        telemetry.log().clear();
 
 //        telemetry.addData("Wheel speed (RB)", () -> speed);
         telemetry.addData("\nintake (RT/LT)", robot.intake::getTelemetry);
@@ -87,7 +89,8 @@ public class Tele extends LinearOpMode {
         telemetry.addData(" arm rotator (left stick x)", robot.outtake.armRotator::getTelemetry);
         telemetry.addData(" pixel rotator (right stick x)", robot.outtake.pixelRotator::getTelemetry);
         telemetry.addData(" releaser (a)", robot.outtake.releaser::getTelemetry);
-        telemetry.addData("launcher (RB/LB)", robot.launcher::getTelemetry);
+//        telemetry.addData("launcher (RB/LB)", robot.launcher::getTelemetry);
+        telemetry.addData("auto claw (back + x/y)", robot.autoClaw::getTelemetry);
 
         while (opModeIsActive()) {
             getGamepadInput();
@@ -101,6 +104,10 @@ public class Tele extends LinearOpMode {
 
             telemetry.update();
         }
+    }
+
+    private static String poseToString(Pose2d startPose) {
+        return String.format("(%.1f, %.1f) @ %.1f deg", startPose.position.x, startPose.position.y, Math.toDegrees(startPose.heading.toDouble()));
     }
 
     private void getGamepadInput() {
@@ -146,7 +153,7 @@ public class Tele extends LinearOpMode {
                 robot.outtake.flipper.unrotateIncrementally();
             robot.outtake.motor.setPower(-gamepad2.left_stick_y);
         } else {
-            if (driver2.isDown(Button.DPAD_UP)) robot.outtake.flipper.goToUpPosition();
+            if (driver2.isDown(Button.DPAD_UP)) robot.outtake.raise();
             else if (driver2.isDown(Button.DPAD_DOWN))
                 runningActions.add(robot.outtake.lower());
             if (Math.abs(gamepad2.left_stick_y) > Math.abs(gamepad2.left_stick_x))
@@ -182,8 +189,14 @@ public class Tele extends LinearOpMode {
 //            robot.hang.setPower(-driver2.getRightY());
 
         // launcher
-        if(driver2.isDown(Button.RIGHT_BUMPER)) robot.launcher.rotate();
-        else if(driver2.isDown(Button.LEFT_BUMPER)) robot.launcher.unrotate();
+//        if(driver2.isDown(Button.RIGHT_BUMPER)) robot.launcher.rotate();
+//        else if(driver2.isDown(Button.LEFT_BUMPER)) robot.launcher.unrotate();
+
+        // auto claw
+        if(gamepad2.x && gamepad2.back)
+            robot.autoClaw.rotateIncrementally();
+        else if(gamepad2.y && gamepad2.back)
+            robot.autoClaw.unrotateIncrementally();
     }
 
     private Vector2d rotate(Vector2d orig, double rotation) {

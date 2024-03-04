@@ -21,8 +21,11 @@ public class CustomButton {
         timeSinceUp = new ElapsedTime();
         state = State.UP;
     }
-    public void update() {
-        if(gamepad.isDown(button)) {
+    public CustomButton() {
+        this(null, null);
+    }
+    public void update(boolean val) {
+        if(val) {
             if(state == State.UP || state == State.JUST_UP) {
                 state = State.JUST_DOWN;
                 timeSinceDown.reset();
@@ -33,6 +36,9 @@ public class CustomButton {
                 timeSinceUp.reset();
             } else state = State.UP;
         }
+    }
+    public void update() {
+        update(gamepad.isDown(button));
     }
     public State getState() { return state; }
     public double getTimeDown() {   // returns the time since the button was pressed

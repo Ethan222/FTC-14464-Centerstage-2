@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import java.util.concurrent.Executors;
@@ -21,14 +22,13 @@ public class Outtake {
         armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .44, .005);
         pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .66, .008);
         releaser = new Releaser(hardwareMap, releaserName, .6, 1);
-        //flipper.setPosition(flipper.getMinPos());
-        extender.setPosition(extender.getMinPos());
-        center();
         executorService = Executors.newSingleThreadScheduledExecutor();
+
+//        extender.goToMinPos();
+//        center();
     }
     public void raise() {
         flipper.goToUpPosition();
-        executorService.schedule(extender::goToMaxPos, 1400, TimeUnit.MILLISECONDS);
         center();
     }
     public Action lower() {
@@ -44,9 +44,22 @@ public class Outtake {
     }
     public void release() {
         releaser.open();
-        executorService.schedule(releaser::close, 1000, TimeUnit.MILLISECONDS);
+        executorService.schedule(releaser::close, 500, TimeUnit.MILLISECONDS);
     }
-
+    public Action goToLeft() {
+        return new ParallelAction(
+            extender.goToPos(.7),
+            armRotator.goToPos(.2),
+            pixelRotator.goToPos(.5)
+        );
+    }
+    public Action goToRight() {
+        return new ParallelAction(
+            extender.goToPos(.7),
+            armRotator.goToPos(.7),
+            pixelRotator.goToPos(.8)
+        );
+    }
     public void moveRight() {
         armRotator.rotateIncrementally();
         pixelRotator.rotateIncrementally();

@@ -16,6 +16,11 @@ public class CustomServo {
         minPosition = minPos;
         maxPosition = maxPos;
     }
+
+    public CustomServo(HardwareMap hardwareMap, String id) {
+        this(hardwareMap, id, 0, 1);
+    }
+
     public void setPosition(double pos) {
         servo.setPosition(Range.clip(pos, minPosition, maxPosition));
     }
@@ -27,7 +32,7 @@ public class CustomServo {
         return servo.getPosition();
     }
     public String getTelemetry() {
-        return String.format("%.3f", getPosition());
+        return String.format("%.2f", getPosition());
     }
 
     public double getMinPos() {
