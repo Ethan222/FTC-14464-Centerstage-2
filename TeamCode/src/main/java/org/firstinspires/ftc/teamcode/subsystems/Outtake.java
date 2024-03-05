@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -23,13 +24,19 @@ public class Outtake {
         pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .66, .008);
         releaser = new Releaser(hardwareMap, releaserName, .6, 1);
         executorService = Executors.newSingleThreadScheduledExecutor();
-
-//        extender.goToMinPos();
-//        center();
     }
-    public void raise() {
-        flipper.goToUpPosition();
-        center();
+    public Action raise() {
+        return new SequentialAction(
+                flipper.flip(),
+                new InstantAction(this::center)
+        );
+    }
+    public Action raiseAndExtendSlightly() {
+        return new SequentialAction(
+                flipper.flip(),
+                new InstantAction(this::center),
+                new InstantAction(() -> extender.goToPos(.6))
+        );
     }
     public Action lower() {
         center();
@@ -86,6 +93,9 @@ public class Outtake {
         @Override public double getIncrement() { return INCREMENT; }
     }
     public static class Releaser extends CustomServo {
+        public enum State {
+            CLOSED, OPEN
+        }
         public Releaser(HardwareMap hardwareMap, String id, double minPos, double maxPos) {
             super(hardwareMap, id, minPos, maxPos);
         }
@@ -94,6 +104,16 @@ public class Outtake {
         }
         public void close() {
             goToMaxPos();
+        }
+
+        public State getState() {
+            double pos = getPosition();
+            final double ERROR = .01;
+            if(Math.abs(pos - getMinPos()) < ERROR)
+                return State.OPEN;
+            else if(Math.abs(pos - getMaxPos()) < ERROR)
+                return State.CLOSED;
+            else return null;
         }
     }
 }

@@ -2,8 +2,10 @@ package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
+import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
+import com.acmerobotics.roadrunner.SleepAction;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
@@ -20,6 +22,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Autonomous(preselectTeleOp = "Tele")
 public class Auto extends LinearOpMode {
@@ -28,7 +31,7 @@ public class Auto extends LinearOpMode {
     }
     private static Alliance alliance = Alliance.BLUE;
     private static Side side = Side.NEAR;
-    private static boolean wait = false, goThroughStageDoor = true, placeOnBackdrop = true, useAprilTags = false, pickFromStack = false;
+    private static boolean wait = false, goThroughStageDoor = true, placeOnBackdrop = true, useAprilTags = false, pickFromStack = true;
     private static ParkPosition parkPosition = ParkPosition.CORNER;
     private static boolean debugMode = true;
 
@@ -38,60 +41,90 @@ public class Auto extends LinearOpMode {
     private ElapsedTime timer;
     private ScheduledExecutorService executorService;
     private boolean initialized = false, propLocationOverride = false;
-    private static final double MIN_INIT_TIME = 5.5, WAIT_TIME = 15;
+    private static final double MIN_INIT_TIME = 5, WAIT_TIME = 15;
     private double beginningWaitTime = 0;
     private Telemetry.Item status, propLocationTelemetry;
     private CustomButton rb, lb, rt, lt, back;
     private CustomButton[] buttons;
 
     private class Trajectories {
-        public Pose2d startPose, parkPose;
-        public Vector2d backdropPose = new Vector2d(56, 35), stackPose = new Vector2d(-57, 6);
+        public Pose2d startPose;
+        public Vector2d backdropPose = new Vector2d(56, 35-1+2), stackPose = new Vector2d(-57, 6), parkPose;
         public final Vector2d aprilTagOffset = new Vector2d(-7, 0);
         public Vector2d trussFront, trussBack;
-        public Action toSpikeMark, toAprilTagDetection, toBackdrop, toPark;
-        public Action frontToStack, frontToWait, stackToBackdrop, backdropToStack;
         public Trajectories() {
-            startPose = (side == Side.NEAR) ? new Pose2d(12, 64, Math.PI/2) : new Pose2d(-36, 64, Math.PI/2);
-            trussFront = new Vector2d(-38, goThroughStageDoor ? 9.5 : 63);
-            trussBack = trussFront.plus(new Vector2d(38, 0));
-            parkPose = (parkPosition == ParkPosition.CORNER) ? new Pose2d(66, 63, Math.PI) : new Pose2d(66, 8, Math.PI);
+            startPose = (side == Side.NEAR) ? new Pose2d(12+5, 64, Math.PI/2) : new Pose2d(-36+5, 64, Math.PI/2);
+            trussFront = new Vector2d(-30, goThroughStageDoor ? 5 : 63);
+            trussBack = trussFront.plus(new Vector2d(60, 0));
+            parkPose = (parkPosition == ParkPosition.CORNER) ? new Vector2d(66, 55) : new Vector2d(66, 8);
         }
-        public void generateTrajectories() {
-            Pose2d spikeMarkPose = null;
+        public Action generateSpikeMarkTraj() {
             if(side == Side.NEAR) {
                 switch (propLocation) {
                     case LEFT:
-                        toSpikeMark = robot.drive.actionBuilder(robot.drive.pose)
-                                .setReversed(true)
+                        return robot.drive.actionBuilder(robot.drive.pose)
+//                                .setReversed(true)
                                 .strafeToSplineHeading(new Vector2d(35, 30), Math.PI)
                                 .build();
-                        spikeMarkPose = new Pose2d(35, 30, Math.PI);
-                        break;
                     case CENTER:
-                        toSpikeMark = robot.drive.actionBuilder(robot.drive.pose)
-                                .setReversed(true)
-                                .lineToYSplineHeading(25, Math.PI)
+                        return robot.drive.actionBuilder(robot.drive.pose)
+//                                .setReversed(true)
+                                .strafeToSplineHeading(new Vector2d(17+5, 17), Math.PI)
                                 .build();
-                        spikeMarkPose = new Pose2d(startPose.position.x, 25, Math.PI);
-                        break;
                     case RIGHT:
-                        toSpikeMark = robot.drive.actionBuilder(robot.drive.pose)
-                                .setReversed(true)
-                                .strafeToSplineHeading(new Vector2d(12, 45), -3*Math.PI/4)
-                                .setReversed(false)
-                                .strafeToSplineHeading(new Vector2d(7, 37), Math.PI)
+                        return robot.drive.actionBuilder(robot.drive.pose)
+//                                .setReversed(true)
+                                .strafeTo(new Vector2d(12, 40))
+                                .turnTo(Math.PI)
+//                                .setReversed(false)
+                                .strafeTo(new Vector2d(7+3, 30))
                                 .build();
-                        spikeMarkPose = new Pose2d(7, 37, Math.PI);
-                        break;
+                }
+            } else {
+                switch(propLocation) {
+                    case LEFT:
+                        return robot.drive.actionBuilder(robot.drive.pose)
+                                .strafeTo(new Vector2d(-35, 40))
+                                .turnTo(0)
+                                .strafeTo(new Vector2d(-30, 30))
+                                .build();
+                    case CENTER:
+                        return robot.drive.actionBuilder(robot.drive.pose)
+                                .strafeTo(new Vector2d(-40, 25))
+                                .build();
+                    case RIGHT:
+                        return robot.drive.actionBuilder(robot.drive.pose)
+                                .strafeToSplineHeading(new Vector2d(-55, 33), Math.PI)
+                                .build();
                 }
             }
-            toBackdrop = robot.drive.actionBuilder(spikeMarkPose)
-                    .setReversed(true)
-                    .strafeTo(backdropPose)
+            return null;
+        }
+
+        public Action generateBackdropTraj() {
+            return robot.drive.actionBuilder(robot.drive.pose)
+//                    .setReversed(true)
+                    .strafeToSplineHeading(backdropPose, Math.PI)
+                    .build();
+        }
+        public Action generateToStack() {
+            return robot.drive.actionBuilder(robot.drive.pose)
+                    .strafeTo(trussBack)
+//                    .strafeTo(trussFront)
+                    .strafeTo(stackPose)
+                    .build();
+        }
+        public Action generateParkTraj() {
+            return robot.drive.actionBuilder(robot.drive.pose)
+                    .lineToX(robot.drive.pose.position.x - 5)
+//                    .setReversed(true)
+                    .strafeTo(new Vector2d(robot.drive.pose.position.x, parkPose.y))
+                    .afterTime(.2, robot.outtake.lower())
+                    .lineToX(parkPose.x)
                     .build();
         }
     }
+    private Trajectories trajectories;
 
     @Override
     public void runOpMode() {
@@ -100,7 +133,6 @@ public class Auto extends LinearOpMode {
         double initTime = getRuntime();
         resetRuntime();
         telemetry.clearAll();
-        robot.outtake.releaser.close();
         if(!propLocationOverride && initTime < MIN_INIT_TIME) {
             beginningWaitTime = MIN_INIT_TIME - initTime;
             continueDetectingTeamProp(beginningWaitTime);
@@ -132,53 +164,95 @@ public class Auto extends LinearOpMode {
         telemetry.addData("runtime", "%.1f", this::getRuntime);
         telemetry.update();
 
-//        timer.reset();
-        Trajectories trajectories = new Trajectories();
+        trajectories = new Trajectories();
         robot.initDrive(hardwareMap, trajectories.startPose);
-        trajectories.generateTrajectories();
-//        telemetry.log().add("load time: %.3f s", timer.seconds());
-
         telemetry.addData("pos", () -> poseToString(robot.drive.pose));
 
-        status.setValue("moving to spike mark at %.1f s", getRuntime());
-        telemetry.update();
-        Actions.runBlocking(new SequentialAction(
-                trajectories.toSpikeMark,
-                new InstantAction(() -> robot.autoClaw.rotateBy(-.1)),
-                new InstantAction(robot.intake::out)
-        ));
-        timer.reset();
-        while(timer.seconds() < 1 && opModeIsActive()) {
-            status.setValue("releasing pixel...%.1fs", 1 - timer.seconds());
-            telemetry.update();
+        robot.autoClaw.setPosition(.6);
+        robot.outtake.releaser.close();
+
+        if(side == Side.NEAR) {
+            if (!pickFromStack || propLocation == Location.LEFT) {
+                placePurplePixel();
+                placeYellowPixel();
+            } else {
+                placeYellowPixel();
+                placePurplePixel();
+                if (propLocation == Location.RIGHT)
+                    Actions.runBlocking(robot.drive.actionBuilder(robot.drive.pose)
+                            .lineToX(trajectories.startPose.position.x)
+                    );
+            }
+            if(pickFromStack) {
+                pickFromStack();
+                return;
+            }
+        } else {
+            placePurplePixel();
+            if(pickFromStack)
+                pickFromStack();
         }
-        robot.intake.stop();
         if(debugMode) pause();
 
-        status.setValue("moving to backdrop at %.1f s", getRuntime());
-        telemetry.update();
-        Actions.runBlocking(new SequentialAction(
-                trajectories.toBackdrop,
-                new InstantAction(robot.outtake::raise)
-        ));
-
-        status.setValue("placing pixel at %.1f s", getRuntime());
-        telemetry.update();
-        while(!gamepad2.a && opModeIsActive()) {
-            if(gamepad2.dpad_left) Actions.runBlocking(robot.outtake.goToLeft());
-            else if(gamepad2.dpad_up) robot.outtake.center();
-            else if(gamepad2.dpad_right) Actions.runBlocking(robot.outtake.goToRight());
+        if(pickFromStack) {
+            pickFromStack();
+            return;
         }
-        robot.outtake.release();
-        wait(.5);
-        Actions.runBlocking(robot.outtake.lower());
 
-        status.setValue("done in %.1f s", getRuntime());
+        status.setValue("parking at %.1fs", getRuntime());
+        telemetry.update();
+        Actions.runBlocking(trajectories.generateParkTraj());
+
+        status.setValue("parked in %.1f s", getRuntime());
         telemetry.update();
         timer.reset();
         while(timer.seconds() < 3 && opModeIsActive());
 
 //        Tele.setStartPose(robot.drive.pose);
+    }
+
+    private void placePurplePixel() {
+        Actions.runBlocking(new ParallelAction(
+                trajectories.generateSpikeMarkTraj(),
+                robot.outtake.lower()
+        ));
+        robot.autoClaw.setPosition(.5);
+        robot.intake.out(.5);
+        executorService.schedule(robot.intake::stop, 250, TimeUnit.MILLISECONDS);
+    }
+
+    private void placeYellowPixel() {
+        Action moveArm;
+        switch (propLocation) {
+            case LEFT:
+                moveArm = robot.outtake.goToLeft();
+                break;
+            case RIGHT:
+                moveArm = robot.outtake.goToRight();
+                break;
+            default:
+                moveArm = new SleepAction(.1);
+        }
+        Actions.runBlocking(new SequentialAction(
+                new ParallelAction(
+                        trajectories.generateBackdropTraj(),
+                        new SequentialAction(
+                                robot.outtake.raise(),
+                                new SleepAction(.2),
+                                moveArm
+                        )
+                ),
+                new SleepAction(.4),
+                new InstantAction(robot.outtake::release)
+        ));
+    }
+    private void pickFromStack() {
+        status.setValue("moving to stack");
+        telemetry.update();
+        Actions.runBlocking(new ParallelAction(
+                trajectories.generateToStack(),
+                robot.outtake.lower()
+        ));
     }
 
     private void wait(double time) {
@@ -215,6 +289,7 @@ public class Auto extends LinearOpMode {
         rt = new CustomButton();
         lt = new CustomButton();
 
+        telemetry.addData("debug mode (start + x/y)", () -> debugMode);
         telemetry.addLine().addData("\nalliance", () -> alliance).addData("side", () -> side);
         telemetry.addData("wait (RB)", () -> wait);
         telemetry.addData("go through stage door (LS)", () -> (side == Side.FAR || pickFromStack) ? goThroughStageDoor : "n/a");
@@ -282,10 +357,10 @@ public class Auto extends LinearOpMode {
         }
 
         // PLACE ON BACKDROP
-        if (rt.getState() == CustomButton.State.JUST_UP && !gamepad2.back) placeOnBackdrop = !placeOnBackdrop;
+        if (lt.getState() == CustomButton.State.JUST_UP && !gamepad2.back) placeOnBackdrop = !placeOnBackdrop;
 
         // PICK FROM STACK
-        if(lt.getState() == CustomButton.State.JUST_UP) {
+        if(rt.getState() == CustomButton.State.JUST_UP) {
             pickFromStack = !pickFromStack;
             if(pickFromStack) {
                 wait = false;

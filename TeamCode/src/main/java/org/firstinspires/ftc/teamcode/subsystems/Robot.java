@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -32,7 +33,8 @@ public class Robot {
         drive = new MecanumDrive(hardwareMap, startPose);
     }
 
-    public void prepareForIntake() {
+    public Action prepareForIntake() {
         outtake.releaser.close();
+        return outtake.lower();
     }
 }

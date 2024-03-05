@@ -15,6 +15,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.enums.Alliance;
+import org.firstinspires.ftc.teamcode.subsystems.Flipper;
+import org.firstinspires.ftc.teamcode.subsystems.Outtake;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
 import java.util.ArrayList;
@@ -34,6 +36,8 @@ public class Tele extends LinearOpMode {
     private MecanumDrive drive;
     private double speed = 1;
     private GamepadEx driver1, driver2;
+    private CustomButton dpadUp, dpadDown, b;
+    private CustomButton[] buttons;
     private FtcDashboard dash = FtcDashboard.getInstance();
     private List<Action> runningActions = new ArrayList<>();
     private ScheduledExecutorService executorService;
@@ -50,6 +54,10 @@ public class Tele extends LinearOpMode {
 
         driver1 = new GamepadEx(gamepad1);
         driver2 = new GamepadEx(gamepad2);
+        dpadUp = new CustomButton(driver2, Button.DPAD_UP);
+        dpadDown = new CustomButton(driver2, Button.DPAD_DOWN);
+        b = new CustomButton(driver2, Button.B);
+        buttons = new CustomButton[]{ dpadUp, dpadDown, b };
 
         executorService = Executors.newSingleThreadScheduledExecutor();
 
@@ -111,6 +119,9 @@ public class Tele extends LinearOpMode {
     }
 
     private void getGamepadInput() {
+        for(CustomButton button : buttons)
+            button.update();
+
         if((gamepad1.start && gamepad1.back) || (gamepad2.start && gamepad2.back))
             requestOpModeStop();
 
@@ -139,7 +150,7 @@ public class Tele extends LinearOpMode {
         if(driver2.getTrigger(Trigger.RIGHT_TRIGGER) > 0) {
             robot.intake.in(driver2.getTrigger(Trigger.RIGHT_TRIGGER));
             if(driver2.isDown(Button.START)) {
-                robot.prepareForIntake();
+                runningActions.add(robot.prepareForIntake());
             }
         } else if(driver2.getTrigger(Trigger.LEFT_TRIGGER) > 0)
             robot.intake.out(driver2.getTrigger(Trigger.LEFT_TRIGGER));
@@ -153,8 +164,11 @@ public class Tele extends LinearOpMode {
                 robot.outtake.flipper.unrotateIncrementally();
             robot.outtake.motor.setPower(-gamepad2.left_stick_y);
         } else {
-            if (driver2.isDown(Button.DPAD_UP)) robot.outtake.raise();
-            else if (driver2.isDown(Button.DPAD_DOWN))
+            if (dpadUp.getState() == CustomButton.State.JUST_UP) {
+                if(robot.outtake.flipper.getState() == Flipper.State.UP)
+                    robot.outtake.extender.goToMaxPos();
+                else runningActions.add(robot.outtake.raiseAndExtendSlightly());
+            } else if (dpadDown.getState() == CustomButton.State.JUST_UP)
                 runningActions.add(robot.outtake.lower());
             if (Math.abs(gamepad2.left_stick_y) > Math.abs(gamepad2.left_stick_x))
                 robot.outtake.flipper.rotateBy(-gamepad2.left_stick_y / 300);
@@ -163,26 +177,28 @@ public class Tele extends LinearOpMode {
         }
         if (Math.abs(gamepad2.left_stick_x) > Math.abs(gamepad2.left_stick_y))
             robot.outtake.armRotator.rotateBy(gamepad2.left_stick_x / 200);
+        else if(robot.outtake.flipper.getState() == Flipper.State.UP)
+            robot.outtake.armRotator.rotateBy(0);
         if(Math.abs(gamepad2.right_stick_x) > Math.abs(gamepad2.right_stick_y))
             robot.outtake.pixelRotator.rotateBy(gamepad2.right_stick_x / 100);
         if(gamepad2.left_stick_button) {
-            if(gamepad2.start) {
-                robot.outtake.armRotator.setCenterPos();
-                telemetry.log().add("arm rotator center pos set");
-                executorService.schedule(telemetry.log()::clear, 1, TimeUnit.SECONDS);
-            } else robot.outtake.armRotator.center();
+            if(gamepad2.start) robot.outtake.armRotator.setCenterPos();
+            else robot.outtake.armRotator.center();
         }
         if(gamepad2.right_stick_button) {
-            if(gamepad2.start) {
-                robot.outtake.pixelRotator.setCenterPos();
-            } else robot.outtake.pixelRotator.center();
+            if(gamepad2.start) robot.outtake.pixelRotator.setCenterPos();
+            else robot.outtake.pixelRotator.center();
         }
 //        if(!driver2.isDown(Button.DPAD_UP) && !driver2.isDown(DPAD_DOWN)) {
 //            if(driver2.isDown(Button.DPAD_RIGHT)) robot.outtake.moveRight();
 //            else if(driver2.isDown(Button.DPAD_LEFT)) robot.outtake.moveLeft();
 //        }
         if(driver2.isDown(Button.A)) robot.outtake.release();
-        else if(driver2.isDown(Button.B)) robot.outtake.releaser.close();
+        else if(b.getState() == CustomButton.State.JUST_UP) {
+            if(robot.outtake.releaser.getState() == Outtake.Releaser.State.CLOSED)
+                robot.outtake.releaser.open();
+            else robot.outtake.releaser.close();
+        }
 
         // hang
 //        if(driver2.isDown(Button.BACK))

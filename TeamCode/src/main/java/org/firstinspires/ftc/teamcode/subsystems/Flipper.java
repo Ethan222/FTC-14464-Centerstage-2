@@ -10,7 +10,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Config
 public class Flipper extends CustomServo {
-    public static double UP_POSITION = .87, NORMAL_SPEED = .01, SLOW_SPEED = .0002, SLOW_DOWN_POSITION = .67, INCREMENT = .001;
+    public enum State {
+        DOWN, UP
+    }
+    public static double UP_POSITION = .87, NORMAL_SPEED = .01, SLOW_SPEED = .0003, SLOW_DOWN_POSITION = .67, INCREMENT = .001;
     public Flipper(HardwareMap hardwareMap, String id, double minPos, double maxPos) {
         super(hardwareMap, id, minPos, maxPos);
     }
@@ -41,7 +44,18 @@ public class Flipper extends CustomServo {
     @Override public double getIncrement() {
         return INCREMENT;
     }
-    public void goToUpPosition() {
-        setPosition(UP_POSITION);
+
+    public Action flip() {
+        return goToPos(UP_POSITION);
+    }
+
+    public State getState() {
+        double psn = getPosition();
+        final double ERROR = .03;
+        if(Math.abs(psn - getMinPos()) < ERROR)
+            return State.DOWN;
+        else if(Math.abs(psn - UP_POSITION) < ERROR)
+            return State.UP;
+        else return null;
     }
 }

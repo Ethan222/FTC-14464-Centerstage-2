@@ -38,6 +38,9 @@ public class CustomServo {
     public double getMinPos() {
         return minPosition;
     }
+    public double getMaxPos() {
+        return maxPosition;
+    }
 
     public void goToMaxPos() {
         setPosition(maxPosition);

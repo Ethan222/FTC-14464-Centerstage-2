@@ -77,15 +77,14 @@ public class TensorFlowObjectDetector {
 
     public Location getLocation(Recognition recognition)
     {
-        // if it doesn't see anything it must be left
         if(recognition == null)
-            return Location.LEFT;
+            return Location.RIGHT;
 
         double centerX = (recognition.getLeft() + recognition.getRight()) / 2;
         if(centerX > CENTER_DIVISION)
-            return Location.RIGHT;
-        else
             return Location.CENTER;
+        else
+            return Location.LEFT;
     }
     public Location getLocation() {
         return getLocation(mostConfidentRecognition);
