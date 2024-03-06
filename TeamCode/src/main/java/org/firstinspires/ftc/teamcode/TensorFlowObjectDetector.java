@@ -8,6 +8,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.teamcode.enums.Alliance;
 import org.firstinspires.ftc.teamcode.enums.Location;
+import org.firstinspires.ftc.teamcode.enums.Side;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
@@ -20,10 +21,10 @@ public class TensorFlowObjectDetector {
     private static final double CENTER_DIVISION = 350;
     private static final double MAX_SIZE = 250;
     private final TfodProcessor tfod; // stores instance of TFOD processor
-    public VisionPortal visionPortal; // stores instance of vision portal
+    private final VisionPortal visionPortal; // stores instance of vision portal
     private List<Recognition> recognitions;
     private Recognition mostConfidentRecognition, previousRecognition;
-    ElapsedTime previousRecognitionTimer;
+    private final ElapsedTime previousRecognitionTimer;
     private Alliance alliance;
     public TensorFlowObjectDetector(HardwareMap hardwareMap) {
         tfod = new TfodProcessor.Builder() // create the TF processor using a builder
@@ -38,6 +39,7 @@ public class TensorFlowObjectDetector {
         previousRecognitionTimer = new ElapsedTime();
     }
     public void update() {
+        alliance = Auto.getAlliance();
         recognitions = tfod.getRecognitions();
 
         if(recognitions.size() != 0) {
@@ -77,14 +79,16 @@ public class TensorFlowObjectDetector {
 
     public Location getLocation(Recognition recognition)
     {
+        Side side = Auto.getSide();
+        boolean onLeftSideOfTile = (alliance == Alliance.BLUE && side == Side.NEAR) || (alliance == Alliance.RED && side == Side.FAR);
         if(recognition == null)
-            return Location.RIGHT;
+            return onLeftSideOfTile ? Location.RIGHT : Location.LEFT;
 
         double centerX = (recognition.getLeft() + recognition.getRight()) / 2;
         if(centerX > CENTER_DIVISION)
-            return Location.CENTER;
+            return onLeftSideOfTile ? Location.CENTER : Location.RIGHT;
         else
-            return Location.LEFT;
+            return onLeftSideOfTile ? Location.LEFT : Location.CENTER;
     }
     public Location getLocation() {
         return getLocation(mostConfidentRecognition);
@@ -126,9 +130,5 @@ public class TensorFlowObjectDetector {
     public void stopDetecting() { // save CPU resources when camera is no longer needed
         visionPortal.close();
         tfod.shutdown();
-    }
-
-    public void setAlliance(Alliance alliance) {
-        this.alliance = alliance;
     }
 }

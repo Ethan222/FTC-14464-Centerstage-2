@@ -10,6 +10,8 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
+import com.arcrobotics.ftclib.gamepad.GamepadKeys.Button;
+import com.arcrobotics.ftclib.gamepad.TriggerReader;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -24,15 +26,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(preselectTeleOp = "Tele")
+@Autonomous//(preselectTeleOp = "Tele")
 public class Auto extends LinearOpMode {
     private enum ParkPosition {
         CORNER, CENTER
     }
     private static Alliance alliance = Alliance.BLUE;
-    private static Side side = Side.NEAR;
+    private static Side side = Side.FAR;
     private static boolean wait = false, goThroughStageDoor = true, placeOnBackdrop = true, useAprilTags = false, pickFromStack = true;
-    private static ParkPosition parkPosition = ParkPosition.CORNER;
+    private static ParkPosition parkPosition = ParkPosition.CENTER;
     private static boolean debugMode = true;
 
     private Robot robot;
@@ -44,18 +46,19 @@ public class Auto extends LinearOpMode {
     private static final double MIN_INIT_TIME = 5, WAIT_TIME = 15;
     private double beginningWaitTime = 0;
     private Telemetry.Item status, propLocationTelemetry;
-    private CustomButton rb, lb, rt, lt, back;
-    private CustomButton[] buttons;
-
+    private GamepadEx driver;
+    private TriggerReader rt, lt;
+    private CustomButton back;
     private class Trajectories {
         public Pose2d startPose;
-        public Vector2d backdropPose = new Vector2d(56, 35-1+2), stackPose = new Vector2d(-57, 6), parkPose;
+        public Vector2d backdropPose = new Vector2d(56, 35-1+2), stackPose, parkPose;
         public final Vector2d aprilTagOffset = new Vector2d(-7, 0);
         public Vector2d trussFront, trussBack;
         public Trajectories() {
-            startPose = (side == Side.NEAR) ? new Pose2d(12+5, 64, Math.PI/2) : new Pose2d(-36+5, 64, Math.PI/2);
+            startPose = (side == Side.NEAR) ? new Pose2d(12+5, 64, Math.PI/2) : new Pose2d(-42+3, 64, Math.PI/2);
             trussFront = new Vector2d(-30, goThroughStageDoor ? 5 : 63);
             trussBack = trussFront.plus(new Vector2d(60, 0));
+            stackPose = (side == Side.NEAR) ? new Vector2d(-57, 6-2) : new Vector2d(-57, 18+2);
             parkPose = (parkPosition == ParkPosition.CORNER) ? new Vector2d(66, 55) : new Vector2d(66, 8);
         }
         public Action generateSpikeMarkTraj() {
@@ -80,21 +83,24 @@ public class Auto extends LinearOpMode {
                                 .strafeTo(new Vector2d(7+3, 30))
                                 .build();
                 }
-            } else {
+            }
+            else if(side == Side.FAR) {
                 switch(propLocation) {
                     case LEFT:
                         return robot.drive.actionBuilder(robot.drive.pose)
                                 .strafeTo(new Vector2d(-35, 40))
                                 .turnTo(0)
-                                .strafeTo(new Vector2d(-30, 30))
+                                .strafeTo(new Vector2d(-30, 28+1))
                                 .build();
                     case CENTER:
                         return robot.drive.actionBuilder(robot.drive.pose)
-                                .strafeTo(new Vector2d(-40, 25))
+                                .strafeTo(new Vector2d(-49-2, 17))
+                                .turnTo(Math.toRadians(35))
                                 .build();
                     case RIGHT:
                         return robot.drive.actionBuilder(robot.drive.pose)
-                                .strafeToSplineHeading(new Vector2d(-55, 33), Math.PI)
+                                .strafeTo(new Vector2d(-40+3, 18))
+                                .strafeTo(new Vector2d(-49-2, 20-2))
                                 .build();
                 }
             }
@@ -102,15 +108,29 @@ public class Auto extends LinearOpMode {
         }
 
         public Action generateBackdropTraj() {
-            return robot.drive.actionBuilder(robot.drive.pose)
+            if(robot.drive.pose.position.x > 0)
+                return robot.drive.actionBuilder(robot.drive.pose)
 //                    .setReversed(true)
-                    .strafeToSplineHeading(backdropPose, Math.PI)
-                    .build();
+                        .strafeToSplineHeading(backdropPose, Math.PI)
+                        .build();
+            else
+                return robot.drive.actionBuilder(robot.drive.pose)
+                        .strafeTo(trussFront)
+                        .turnTo(Math.PI)
+                        .strafeTo(trussBack)
+                        .afterDisp(30, robot.outtake::raise)
+                        .strafeTo(backdropPose)
+                        .build();
         }
         public Action generateToStack() {
-            return robot.drive.actionBuilder(robot.drive.pose)
-                    .strafeTo(trussBack)
-//                    .strafeTo(trussFront)
+            if(robot.drive.pose.position.x > 0)
+                return robot.drive.actionBuilder(robot.drive.pose)
+                        .strafeTo(trussBack)
+    //                    .strafeTo(trussFront)
+                        .strafeTo(stackPose)
+                        .build();
+            else return robot.drive.actionBuilder(robot.drive.pose)
+                    .turnTo(Math.PI)
                     .strafeTo(stackPose)
                     .build();
         }
@@ -121,6 +141,11 @@ public class Auto extends LinearOpMode {
                     .strafeTo(new Vector2d(robot.drive.pose.position.x, parkPose.y))
                     .afterTime(.2, robot.outtake.lower())
                     .lineToX(parkPose.x)
+                    .build();
+        }
+        public Action generateResetTraj() {
+            return robot.drive.actionBuilder(robot.drive.pose)
+                    .strafeToSplineHeading(startPose.position, startPose.heading.toDouble())
                     .build();
         }
     }
@@ -145,6 +170,72 @@ public class Auto extends LinearOpMode {
         } catch (Exception ignored) {}
 
         telemetry.clearAll();
+        runtimeTelemetry();
+        telemetry.update();
+
+        trajectories = new Trajectories();
+        robot.initDrive(hardwareMap, trajectories.startPose);
+        telemetry.addData("pos", () -> poseToString(robot.drive.pose));
+
+//        robot.autoClaw.setPosition(.6);
+        robot.outtake.releaser.close();
+
+        if(side == Side.NEAR) {
+            if (!pickFromStack || propLocation == Location.LEFT) {
+                placePurplePixel();
+                placeYellowPixel();
+            } else {
+                placeYellowPixel();
+                placePurplePixel();
+                if (propLocation == Location.RIGHT)
+                    Actions.runBlocking(robot.drive.actionBuilder(robot.drive.pose)
+                            .lineToX(trajectories.startPose.position.x)
+                            .build()
+                    );
+            }
+            if(pickFromStack) {
+                pickFromStack();
+            }
+        } else if(side == Side.FAR) {
+            placePurplePixel();
+            if(debugMode) pause();
+            if(pickFromStack) {
+                pickFromStack();
+                if(debugMode) pause();
+            } else if(wait)
+                wait(getRuntime() - WAIT_TIME);
+            // move to backdrop and put arm up
+            Actions.runBlocking(new ParallelAction(
+                    trajectories.generateBackdropTraj(),
+                    new SequentialAction(
+                            new SleepAction(1)
+                    )
+            ));
+        }
+        if(debugMode) {
+            pause();
+            Actions.runBlocking(trajectories.generateResetTraj());
+            return;
+        }
+
+        if(pickFromStack) {
+            pickFromStack();
+            return;
+        }
+
+        status.setValue("parking at %.1fs", getRuntime());
+        telemetry.update();
+        Actions.runBlocking(trajectories.generateParkTraj());
+
+        status.setValue("parked in %.1f s", getRuntime());
+        telemetry.update();
+        timer.reset();
+        while(timer.seconds() < 3 && opModeIsActive());
+
+        Tele.setStartPose(robot.drive.pose);
+    }
+
+    private void runtimeTelemetry() {
         telemetry.setAutoClear(false);
         telemetry.addData("Running", "%s %s,  prop location = %s", alliance, side, propLocation);
         if(wait)
@@ -162,53 +253,6 @@ public class Auto extends LinearOpMode {
             telemetry.addLine("DEBUG");
         status = telemetry.addData("\nStatus", "loading...");
         telemetry.addData("runtime", "%.1f", this::getRuntime);
-        telemetry.update();
-
-        trajectories = new Trajectories();
-        robot.initDrive(hardwareMap, trajectories.startPose);
-        telemetry.addData("pos", () -> poseToString(robot.drive.pose));
-
-        robot.autoClaw.setPosition(.6);
-        robot.outtake.releaser.close();
-
-        if(side == Side.NEAR) {
-            if (!pickFromStack || propLocation == Location.LEFT) {
-                placePurplePixel();
-                placeYellowPixel();
-            } else {
-                placeYellowPixel();
-                placePurplePixel();
-                if (propLocation == Location.RIGHT)
-                    Actions.runBlocking(robot.drive.actionBuilder(robot.drive.pose)
-                            .lineToX(trajectories.startPose.position.x)
-                    );
-            }
-            if(pickFromStack) {
-                pickFromStack();
-                return;
-            }
-        } else {
-            placePurplePixel();
-            if(pickFromStack)
-                pickFromStack();
-        }
-        if(debugMode) pause();
-
-        if(pickFromStack) {
-            pickFromStack();
-            return;
-        }
-
-        status.setValue("parking at %.1fs", getRuntime());
-        telemetry.update();
-        Actions.runBlocking(trajectories.generateParkTraj());
-
-        status.setValue("parked in %.1f s", getRuntime());
-        telemetry.update();
-        timer.reset();
-        while(timer.seconds() < 3 && opModeIsActive());
-
-//        Tele.setStartPose(robot.drive.pose);
     }
 
     private void placePurplePixel() {
@@ -216,7 +260,7 @@ public class Auto extends LinearOpMode {
                 trajectories.generateSpikeMarkTraj(),
                 robot.outtake.lower()
         ));
-        robot.autoClaw.setPosition(.5);
+//        robot.autoClaw.setPosition(.5);
         robot.intake.out(.5);
         executorService.schedule(robot.intake::stop, 250, TimeUnit.MILLISECONDS);
     }
@@ -231,7 +275,7 @@ public class Auto extends LinearOpMode {
                 moveArm = robot.outtake.goToRight();
                 break;
             default:
-                moveArm = new SleepAction(.1);
+                moveArm = new SleepAction(.01);
         }
         Actions.runBlocking(new SequentialAction(
                 new ParallelAction(
@@ -242,7 +286,7 @@ public class Auto extends LinearOpMode {
                                 moveArm
                         )
                 ),
-                new SleepAction(.4),
+                new SleepAction(.9),
                 new InstantAction(robot.outtake::release)
         ));
     }
@@ -281,20 +325,17 @@ public class Auto extends LinearOpMode {
         propLocation = Location.LEFT;
         timer = new ElapsedTime();
         executorService = Executors.newSingleThreadScheduledExecutor();
-        GamepadEx driver2 = new GamepadEx(gamepad2);
-        rb = new CustomButton(driver2, GamepadKeys.Button.RIGHT_BUMPER);
-        lb = new CustomButton(driver2, GamepadKeys.Button.LEFT_BUMPER);
-        back = new CustomButton(driver2, GamepadKeys.Button.BACK);
-        buttons = new CustomButton[]{ rb, lb, back };
-        rt = new CustomButton();
-        lt = new CustomButton();
+
+        driver = new GamepadEx(gamepad1);
+        rt = new TriggerReader(driver, GamepadKeys.Trigger.RIGHT_TRIGGER);
+        lt = new TriggerReader(driver, GamepadKeys.Trigger.LEFT_TRIGGER);
 
         telemetry.addData("debug mode (start + x/y)", () -> debugMode);
         telemetry.addLine().addData("\nalliance", () -> alliance).addData("side", () -> side);
-        telemetry.addData("wait (RB)", () -> wait);
+        telemetry.addData("wait (RB)", () -> pickFromStack ? "n/a" : wait);
         telemetry.addData("go through stage door (LS)", () -> (side == Side.FAR || pickFromStack) ? goThroughStageDoor : "n/a");
-        telemetry.addData("place on backdrop (RT)", () -> placeOnBackdrop);
-        telemetry.addData("pick from stack (LT)", () -> pickFromStack);
+        telemetry.addData("place on backdrop (LT)", () -> placeOnBackdrop);
+        telemetry.addData("pick from stack (RT)", () -> pickFromStack);
         telemetry.addData("use april tags (LB)", () -> placeOnBackdrop ? useAprilTags : "n/a");
         telemetry.addData("park (RS)", () -> placeOnBackdrop && (wait || pickFromStack) ? "n/a" : parkPosition);
         propLocationTelemetry = telemetry.addData("\nprop location", null).setRetained(true);
@@ -314,7 +355,6 @@ public class Auto extends LinearOpMode {
 
             if (!propLocationOverride) {
                 try {
-                    propDetector.setAlliance(alliance);
                     detectTeamProp();
                 } catch (Exception e) {
                     propLocationTelemetry.setValue("error: " + e);
@@ -325,10 +365,8 @@ public class Auto extends LinearOpMode {
         }
     }
     private void getGamepadInput() {
-        for(CustomButton button : buttons)
-            button.update();
-        rt.update(gamepad2.right_trigger > .1);
-        lt.update(gamepad2.left_trigger > .1);
+        driver.readButtons();
+        back.update();
 
         if((gamepad1.start && gamepad1.back) || (gamepad2.start && gamepad2.back))
             requestOpModeStop();
@@ -348,7 +386,7 @@ public class Auto extends LinearOpMode {
         }
 
         // WAIT
-        if(rb.getState() == CustomButton.State.JUST_UP && !gamepad2.back) wait = !wait;
+        if(driver.wasJustReleased(Button.RIGHT_BUMPER) && !gamepad2.back) wait = !wait;
 
         // GO THROUGH STAGE DOOR
         if(!gamepad2.back) {
@@ -357,10 +395,10 @@ public class Auto extends LinearOpMode {
         }
 
         // PLACE ON BACKDROP
-        if (lt.getState() == CustomButton.State.JUST_UP && !gamepad2.back) placeOnBackdrop = !placeOnBackdrop;
+        if (lt.wasJustReleased() && !gamepad2.back) placeOnBackdrop = !placeOnBackdrop;
 
         // PICK FROM STACK
-        if(rt.getState() == CustomButton.State.JUST_UP) {
+        if(rt.wasJustPressed()) {
             pickFromStack = !pickFromStack;
             if(pickFromStack) {
                 wait = false;
@@ -369,7 +407,7 @@ public class Auto extends LinearOpMode {
         }
 
         // APRIL TAGS
-        if(placeOnBackdrop && lb.getState() == CustomButton.State.JUST_UP) useAprilTags = !useAprilTags;
+        if(placeOnBackdrop && driver.wasJustReleased(Button.LEFT_BUMPER)) useAprilTags = !useAprilTags;
 
         // PARK
         if(!gamepad2.back) {
@@ -423,6 +461,9 @@ public class Auto extends LinearOpMode {
             telemetry.update();
     }
     public static Alliance getAlliance() { return alliance; }
+    public static Side getSide() {
+        return side;
+    }
     private static String poseToString(Pose2d startPose) {
         return String.format("(%.1f, %.1f) @ %.1f deg", startPose.position.x, startPose.position.y, Math.toDegrees(startPose.heading.toDouble()));
     }

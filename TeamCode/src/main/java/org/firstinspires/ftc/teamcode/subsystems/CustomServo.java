@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 public class CustomServo {
+    public static final String MIN = "MIN", MAX = "MAX";
     private static final double DEFAULT_SPEED = .01;
     private final Servo servo;
     private final double minPosition, maxPosition;
@@ -32,7 +33,17 @@ public class CustomServo {
         return servo.getPosition();
     }
     public String getTelemetry() {
-        return String.format("%.2f", getPosition());
+        return String.format("%.2f (%s)", getPosition(), getState());
+    }
+
+    public String getState() {
+        double psn = getPosition();
+        final double tolerance = .01;
+        if(Math.abs(psn - minPosition) < tolerance)
+            return MIN;
+        else if(Math.abs(psn - maxPosition) < tolerance)
+            return MAX;
+        else return "";
     }
 
     public double getMinPos() {
@@ -65,7 +76,7 @@ public class CustomServo {
 
     public Action goToPos(double pos, double speed) {
         return telemetryPacket -> {
-            if(Math.abs(pos - getPosition()) < .001)
+            if(Math.abs(pos - getPosition()) < .01)
                 return false;
             rotateBy(pos > getPosition() ? speed : -speed);
             return true;

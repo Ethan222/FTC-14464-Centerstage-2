@@ -5,6 +5,8 @@ import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -20,10 +22,12 @@ public class Outtake {
         motor = new Motor(hardwareMap, motorName);
         flipper = new Flipper(hardwareMap, flipperName, .57, 1);
         extender = new CustomServo(hardwareMap, extenderName, .37, .95);
-        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .44, .005);
-        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .66, .008);
+        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .44, .007);
+        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1,.6, .004);
         releaser = new Releaser(hardwareMap, releaserName, .6, 1);
         executorService = Executors.newSingleThreadScheduledExecutor();
+        flipper.goToMinPos();
+        center();
     }
     public Action raise() {
         return new SequentialAction(
@@ -35,7 +39,7 @@ public class Outtake {
         return new SequentialAction(
                 flipper.flip(),
                 new InstantAction(this::center),
-                new InstantAction(() -> extender.goToPos(.6))
+                extender.goToPos(.87)
         );
     }
     public Action lower() {
@@ -77,6 +81,7 @@ public class Outtake {
     }
 
     public static class Rotator extends CustomServo {
+        public static final String LEFT = "LEFT", CENTER = "CENTER", RIGHT = "RIGHT";
         private double CENTER_POS;
         private final double INCREMENT;
         public Rotator(HardwareMap hardwareMap, String id, double minPos, double maxPos, double centerPos, double increment) {
@@ -85,17 +90,26 @@ public class Outtake {
           INCREMENT = increment;
         }
         public void center() {
-          setPosition(CENTER_POS);
+            rotateIncrementally();
+            setPosition(CENTER_POS);
         }
         public void setCenterPos() {
           CENTER_POS = getPosition();
         }
         @Override public double getIncrement() { return INCREMENT; }
+        @Override public String getState() {
+            String state = super.getState();
+            if(Objects.equals(state, CustomServo.MIN))
+                return LEFT;
+            else if(Objects.equals(state, CustomServo.MAX))
+                return RIGHT;
+            else if(Math.abs(getPosition() - CENTER_POS) < .01)
+                return CENTER;
+            else return "";
+        }
     }
     public static class Releaser extends CustomServo {
-        public enum State {
-            CLOSED, OPEN
-        }
+        public static final String OPEN = "OPEN", CLOSED = "CLOSED";
         public Releaser(HardwareMap hardwareMap, String id, double minPos, double maxPos) {
             super(hardwareMap, id, minPos, maxPos);
         }
@@ -106,14 +120,15 @@ public class Outtake {
             goToMaxPos();
         }
 
-        public State getState() {
+        @Override
+        public String getState() {
             double pos = getPosition();
             final double ERROR = .01;
             if(Math.abs(pos - getMinPos()) < ERROR)
-                return State.OPEN;
+                return OPEN;
             else if(Math.abs(pos - getMaxPos()) < ERROR)
-                return State.CLOSED;
-            else return null;
+                return CLOSED;
+            else return "";
         }
     }
 }
