@@ -60,8 +60,8 @@ public class Outtake {
     public Action goToLeft() {
         return new ParallelAction(
             extender.goToPos(.7),
-            armRotator.goToPos(.2),
-            pixelRotator.goToPos(.5)
+            armRotator.goToPos(.2-.1),
+            pixelRotator.goToPos(.4)
         );
     }
     public Action goToRight() {
