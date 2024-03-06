@@ -44,7 +44,7 @@ public class Outtake {
     }
     public Action lower() {
         center();
-        return new SequentialAction(
+        return new ParallelAction(
                 extender.goToMinPosWithActions(),
                 flipper.unflip()
         );
