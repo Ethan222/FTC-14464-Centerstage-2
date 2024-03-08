@@ -13,7 +13,7 @@ public class AprilTagIDs {
         tagPoses = new HashMap<>();
         double backdropX = 58.5+.5;
         tagPoses.put(blueBackdrop.LEFT, new Vector2d(backdropX, 42));
-        tagPoses.put(blueBackdrop.CENTER, new Vector2d(backdropX, 29));
+        tagPoses.put(blueBackdrop.CENTER, new Vector2d(backdropX, 34));
         tagPoses.put(blueBackdrop.RIGHT, new Vector2d(backdropX, 19));
         tagPoses.put(redBackdrop.LEFT, tagPoses.get(blueBackdrop.RIGHT));
         tagPoses.put(redBackdrop.CENTER, tagPoses.get(blueBackdrop.CENTER));

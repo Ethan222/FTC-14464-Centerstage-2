@@ -64,6 +64,9 @@ public class CustomServo {
     public void goToMinPos() {
         setPosition(minPosition);
     }
+    public Action goToMaxPosWithActions() {
+        return goToPos(maxPosition);
+    }
     public Action goToMinPosWithActions() {
         return goToPos(minPosition);
     }

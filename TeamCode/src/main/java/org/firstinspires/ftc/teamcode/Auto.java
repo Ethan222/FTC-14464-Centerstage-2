@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.NullAction;
@@ -32,16 +31,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous//(preselectTeleOp = "Tele")
+@Autonomous(preselectTeleOp = "Tele")
 public class Auto extends LinearOpMode {
     private enum ParkPosition {
         CORNER, CENTER
     }
     private static Alliance alliance = Alliance.BLUE;
-    private static Side side = Side.NEAR;
-    private static boolean wait = false, goThroughStageDoor = true, placeOnBackdrop = true, useAprilTags = true, pickFromStack = false;
+    private static Side side = Side.FAR;
+    private static boolean wait = false, goThroughStageDoor = true, placeOnBackdrop = true, useAprilTags = true, pickFromStack = true;
     private static ParkPosition parkPosition = ParkPosition.CENTER;
-    private static boolean debugMode = true;
+    private static boolean debugMode = false;
 
     private Robot robot;
     private TensorFlowObjectDetector propDetector;
@@ -58,29 +57,31 @@ public class Auto extends LinearOpMode {
     private CustomButton back;
     private class Trajectories {
         public Pose2d startPose;
-        public Vector2d backdropPose = new Vector2d(60, 35), stackPose, parkPose;
-        public final Vector2d aprilTagOffset = new Vector2d(-7, 0);
+        public Vector2d backdropPose = newVector(60, 35), stackPose, parkPose;
+        public final Vector2d aprilTagOffset = new Vector2d(-15, 0);
         public Vector2d trussFront, trussBack;
+        public int reversed = (alliance == Alliance.BLUE) ? 1 : -1;
         public Trajectories() {
-            startPose = (side == Side.NEAR) ? new Pose2d(17, 64, Math.PI/2) : new Pose2d(-42+3, 64, Math.PI/2);
-            trussFront = new Vector2d(-30, goThroughStageDoor ? 1 : 63);
-            trussBack = new Vector2d(30+3, trussFront.y);
-            stackPose = new Vector2d(-57, 1); // <- stack closest to center. middle stack coords: (-57, 20)
-            if(side == Side.FAR) backdropPose = backdropPose.plus(new Vector2d(-4, 6));
-            parkPose = (parkPosition == ParkPosition.CORNER) ? new Vector2d(66-10, 55) : new Vector2d(66-10, 8);
+            startPose = (side == Side.NEAR) ? newPose(17, 64, Math.PI/2) : newPose(-42+3, 64, Math.PI/2);
+            trussFront = newVector(-30, goThroughStageDoor ? -1 : 63);
+            trussBack = new Vector2d(33, trussFront.y);
+            stackPose = newVector(-57, 1); // <- stack closest to center. middle stack coords: (-57, 20)
+            if(side == Side.FAR) stackPose = stackPose.plus(new Vector2d(-5+2, 0));
+//            if(side == Side.FAR) backdropPose = backdropPose.plus(new Vector2d(-4, 6));
+            parkPose = (parkPosition == ParkPosition.CORNER) ? newVector(66-10, 55) : newVector(66-10, 8);
         }
         public Action generateSpikeMarkTraj() {
             if(side == Side.NEAR) {
                 if ((alliance == Alliance.BLUE && propLocation == Location.LEFT) || (alliance == Alliance.RED && propLocation == Location.RIGHT)) {
                     return robot.drive.actionBuilder(robot.drive.pose)
-                            .strafeToSplineHeading(new Vector2d(35, 30), Math.PI)
+                            .strafeToSplineHeading(newVector(35, 30), Math.PI)
                             .build();
                 } else if (propLocation == Location.CENTER) {
                     return robot.drive.actionBuilder(robot.drive.pose)
-                            .strafeToSplineHeading(new Vector2d(24+2, 17), Math.PI)
+                            .strafeToSplineHeading(newVector(24+2, 17), Math.PI)
                             .build();
                 } else { // blue right/red left
-                    Vector2d spikeMarkPose = new Vector2d(10, 25+2);
+                    Vector2d spikeMarkPose = newVector(10, 25+2);
                     double backAmount = 3;
                     if(robot.drive.pose.position.x > 40)
                         return robot.drive.actionBuilder(robot.drive.pose)
@@ -89,7 +90,7 @@ public class Auto extends LinearOpMode {
                                 .lineToX(spikeMarkPose.x + backAmount)
                                 .build();
                     return robot.drive.actionBuilder(robot.drive.pose)
-                            .strafeTo(new Vector2d(12, 40))
+                            .strafeTo(newVector(12, 40))
                             .turnTo(Math.PI)
                             .strafeTo(spikeMarkPose)
                             .lineToX(spikeMarkPose.x + backAmount)
@@ -99,19 +100,19 @@ public class Auto extends LinearOpMode {
             else if(side == Side.FAR) {
                 if ((alliance == Alliance.BLUE && propLocation == Location.LEFT) || (alliance == Alliance.RED && propLocation == Location.RIGHT)) {
                     return robot.drive.actionBuilder(robot.drive.pose)
-                            .strafeTo(new Vector2d(-35, 40))
-                            .turnTo(0)
-                            .strafeTo(new Vector2d(-30, 28 + 1))
+                            .strafeToSplineHeading(newVector(-35, 40), 0)
+//                            .turnTo(0)
+                            .strafeTo(newVector(-30, 29))
                             .build();
                 } else if (propLocation == Location.CENTER) {
                     return robot.drive.actionBuilder(robot.drive.pose)
-                            .strafeTo(new Vector2d(-49 - 2, 17))
-                            .turnTo(Math.toRadians(35))
+                            .strafeToSplineHeading(newVector(-57+3, 17), Math.PI/6 * reversed)
+//                            .turnTo(Math.toRadians(30))
                             .build();
                 } else { // blue right/red left
                     return robot.drive.actionBuilder(robot.drive.pose)
-                            .strafeTo(new Vector2d(-34+1, 18))
-                            .strafeTo(new Vector2d(-51, 18-2))
+                            .strafeTo(newVector(-33, 18))
+                            .strafeTo(newVector(-51, 16))
                             .build();
                 }
             }
@@ -120,16 +121,17 @@ public class Auto extends LinearOpMode {
 
         public Action generateBackdropTraj(boolean careAboutPosition, Action armMovement) {
             if(!careAboutPosition) {
-                double dist = Math.abs(trussBack.x - robot.drive.pose.position.x);
+                double dist = Math.abs(robot.drive.pose.position.x);
                 return robot.drive.actionBuilder(robot.drive.pose)
-                        .strafeTo(new Vector2d(backdropPose.x, 15+3))
-                        .afterDisp(dist - 10, robot.outtake.raise())
-                        .afterDisp(dist + 10, armMovement)
+                        .strafeToSplineHeading(newVector(robot.drive.pose.position.x+5, -2), Math.PI)
+//                        .turnTo(Math.PI)
+                        .strafeTo(newVector(backdropPose.x, 18))
+                        .afterDisp(dist, robot.outtake.raise())
+                        .afterDisp(dist + 40, robot.outtake.extender::goToMaxPos)
+                        .afterDisp(dist + 50, robot.outtake.goToLeft())
                         .build();
             }
             Vector2d newBackdropPose = backdropPose;
-            if(useAprilTags)
-                newBackdropPose = backdropPose.plus(aprilTagOffset);
             if(robot.drive.pose.position.x > 0)
                 return robot.drive.actionBuilder(robot.drive.pose)
                         .strafeToSplineHeading(newBackdropPose, Math.PI)
@@ -137,6 +139,8 @@ public class Auto extends LinearOpMode {
                         .build();
             else if(pickFromStack)
                 return robot.drive.actionBuilder(robot.drive.pose)
+                        .strafeToSplineHeading(newVector(robot.drive.pose.position.x, trussBack.y), Math.PI)
+//                        .turnTo(Math.PI)
                         .strafeTo(trussBack)
                         .strafeTo(newBackdropPose)
                         .afterDisp(1, new SequentialAction(robot.outtake.raise(), armMovement))
@@ -150,6 +154,11 @@ public class Auto extends LinearOpMode {
                         .strafeTo(newBackdropPose)
                         .build();
         }
+        public Action generateToAprilTagDetection() {
+            return robot.drive.actionBuilder(robot.drive.pose)
+                .strafeToSplineHeading(backdropPose.plus(aprilTagOffset), Math.PI)
+                .build();
+        }
         public Action generateToStack() {
             if(robot.drive.pose.position.x > 0)
                 return robot.drive.actionBuilder(robot.drive.pose)
@@ -158,8 +167,8 @@ public class Auto extends LinearOpMode {
                         .strafeTo(stackPose)
                         .build();
             else return robot.drive.actionBuilder(robot.drive.pose)
-                    .turnTo(Math.PI)
-                    .strafeTo(stackPose)
+//                    .turnTo(Math.PI)
+                    .strafeToSplineHeading(stackPose, Math.PI)
                     .build();
         }
         public Action generateParkTraj() {
@@ -236,14 +245,19 @@ public class Auto extends LinearOpMode {
                 ));
                 placeOnBackdrop();
             } else {
-                moveToBackdrop(true);
-                if(useAprilTags)
+                if(useAprilTags) {
+                    Actions.runBlocking(new ParallelAction(
+                            trajectories.generateToAprilTagDetection(),
+                            robot.outtake.raise()
+                    ));
                     updatePoseFromAprilTag();
-                Actions.runBlocking(
+                }
+                Actions.runBlocking(new ParallelAction(
                         robot.drive.actionBuilder(robot.drive.pose)
                                 .strafeTo(trajectories.backdropPose)
-                                .build()
-                );
+                                .build(),
+                        getArmMovementAction()
+                ));
                 placeOnBackdrop();
                 if(debugMode) pause();
                 placePurplePixel();
@@ -259,17 +273,37 @@ public class Auto extends LinearOpMode {
             if(pickFromStack) {
                 pickFromStack();
                 if(debugMode) pause();
-            } else if(wait)
-                wait(getRuntime() - WAIT_TIME);
+                Actions.runBlocking(robot.drive.actionBuilder(robot.drive.pose)
+                        .strafeToSplineHeading(newVector(robot.drive.pose.position.x, trajectories.trussBack.y), Math.PI)
+                        .strafeTo(trajectories.trussBack).build());
+            } else if(wait) {
+                Actions.runBlocking(new SequentialAction(
+                        robot.drive.actionBuilder(robot.drive.pose)
+                            .strafeTo(trajectories.trussFront)
+                            .build(),
+                        new SleepAction(getRuntime() - WAIT_TIME),
+                        robot.drive.actionBuilder(robot.drive.pose)
+                            .strafeTo(trajectories.trussBack)
+                            .build()
+                ));
+            }
+            if(useAprilTags) {
+                Actions.runBlocking(new ParallelAction(
+                        trajectories.generateToAprilTagDetection(),
+                        robot.outtake.raise()
+                ));
+                updatePoseFromAprilTag();
+            }
             moveToBackdrop(true);
+            placeOnBackdrop();
         }
         if(debugMode) pause();
 
         if(pickFromStack) {
             pickFromStack();
-            if(debugMode) pause();
+//            if(debugMode) pause();
             moveToBackdrop(false);
-            if(debugMode) pause();
+//            if(debugMode) pause();
             placeOnBackdrop();
         }
 
@@ -279,16 +313,14 @@ public class Auto extends LinearOpMode {
 
         status.setValue("parked in %.1f s", getRuntime());
         telemetry.update();
+        Tele.setStartPose(robot.drive.pose);
+
+        Actions.runBlocking(new SleepAction(3+2));
         if(debugMode) {
             telemetry.log().add("press to reset");
             pause();
             Actions.runBlocking(trajectories.generateResetTraj());
-        } else {
-            timer.reset();
-            while (timer.seconds() < 3 && opModeIsActive()) ;
         }
-
-        Tele.setStartPose(robot.drive.pose);
     }
 
     private void runtimeTelemetry() {
@@ -317,21 +349,23 @@ public class Auto extends LinearOpMode {
                 robot.outtake.lower()
         ));
 //        robot.autoClaw.setPosition(.5);
-        robot.intake.out(.5);
-        executorService.schedule(robot.intake::stop, 250, TimeUnit.MILLISECONDS);
+//        robot.intake.out(.5);
+//        executorService.schedule(robot.intake::stop, 250, TimeUnit.MILLISECONDS);
     }
 
     private void moveToBackdrop(boolean careAboutPosition) {
-        Action armMovement = careAboutPosition ? getArmMovementAction() : new ParallelAction(
-                new InstantAction(robot.outtake.extender::goToMaxPos), robot.outtake.goToLeft()
+        Action armMovement = careAboutPosition ? getArmMovementAction() : new SequentialAction(
+                new InstantAction(robot.outtake.extender::goToMaxPos),
+                new SleepAction(.75),
+                robot.outtake.goToLeft()
         );
         Actions.runBlocking(trajectories.generateBackdropTraj(careAboutPosition, armMovement));
     }
     private void placeOnBackdrop() {
         Actions.runBlocking(new SequentialAction(
-                new SleepAction(.5),
+                new SleepAction(1-.2),
                 new InstantAction(robot.outtake.releaser::open),
-                new SleepAction(.5)
+                new SleepAction(1-.5)
         ));
     }
     private Action getArmMovementAction() {
@@ -340,6 +374,9 @@ public class Auto extends LinearOpMode {
                 return robot.outtake.goToLeft();
             case RIGHT:
                 return robot.outtake.goToRight();
+            case CENTER:
+                if(side == Side.FAR)
+                    return robot.outtake.extender.goToMaxPosWithActions();
             default:
                 return new NullAction();
         }
@@ -351,16 +388,15 @@ public class Auto extends LinearOpMode {
                 trajectories.generateToStack(),
                 robot.prepareForIntake()
         ));
-        if(debugMode) pause();
+//        if(debugMode) pause();
         robot.intake.in();
         Actions.runBlocking(robot.drive.actionBuilder(robot.drive.pose)
-//                .lineToX(robot.drive.pose.position.x - 2, new TranslationalVelConstraint(2))
-                .strafeTo(robot.drive.pose.position.plus(new Vector2d(-1, 5)), new TranslationalVelConstraint(5))
+                .strafeTo(robot.drive.pose.position.plus(newVector(-3, 10))) //, new TranslationalVelConstraint(10*2))
                 .build()
         );
-        robot.intake.stop();
-//        robot.intake.out();
-//        executorService.schedule(robot.intake::stop, 1, TimeUnit.SECONDS);
+//        robot.intake.stop();
+        robot.intake.out();
+        executorService.schedule(robot.intake::stop, 1_500, TimeUnit.MILLISECONDS);
     }
 
     private void wait(double time) {
@@ -536,28 +572,62 @@ public class Auto extends LinearOpMode {
         return String.format("(%.1f, %.1f) @ %.1f deg", pose.position.x, pose.position.y, Math.toDegrees(pose.heading.toDouble()));
     }
     private void updatePoseFromAprilTag() {
+        final double MAX_DETECTION_TIME = 1.0, MAX_CHANGE = 10;
         status.setValue("looking for april tags...");
         telemetry.update();
         timer.reset();
         AprilTagDetection detectedTag = null;
-        while(detectedTag == null) {
+        while(detectedTag == null && timer.seconds() < MAX_DETECTION_TIME) {
             detectedTag = aprilTagDetector.detect();
         }
+        if(detectedTag == null) {
+            telemetry.log().add("didn't detect anything in %.1fs", MAX_DETECTION_TIME);
+            return;
+        }
         Object[] location = AprilTagIDs.getLocation(detectedTag.id);
-        telemetry.log().add("detected: %s %s after %.2fs", location[0], location[1], timer.seconds());
+        if(location == null) {
+            telemetry.log().add("tag not recognized (id %d)", detectedTag.id);
+            return;
+        }
+        telemetry.log().add("detected %s %s after %.2fs", location[0], location[1], timer.seconds());
         Vector2d cameraTagPose = AprilTagDetector.convertPose(detectedTag.pose);
         telemetry.log().add("april tag pose (camera): %s", vectorToString(cameraTagPose));
         Vector2d fieldTagPose = aprilTagDetector.aprilTagIDs.getPose(detectedTag.id);
         telemetry.log().add("april tag pose (field): %s", vectorToString(fieldTagPose));
-        Pose2d newRobotPose = new Pose2d(fieldTagPose.x - cameraTagPose.x, fieldTagPose.y + cameraTagPose.y, robot.drive.pose.heading.toDouble());
+        Pose2d newRobotPose = newPose(fieldTagPose.x - cameraTagPose.x, fieldTagPose.y + cameraTagPose.y, robot.drive.pose.heading.toDouble());
         telemetry.log().add("old robot pose: %s", vectorToString(robot.drive.pose.position));
         telemetry.log().add("new robot pose: %s", vectorToString(newRobotPose.position));
-        telemetry.log().add("change: %s", vectorToString(newRobotPose.position.minus(robot.drive.pose.position)));
+        Vector2d change = newRobotPose.position.minus(robot.drive.pose.position);
+        telemetry.log().add("change: %s", vectorToString(change));
         telemetry.update();
-        robot.drive.pose = newRobotPose;
-        if(debugMode) pause();
+        if(Math.abs(change.x) < MAX_CHANGE && Math.abs(change.y) < MAX_CHANGE)
+            robot.drive.pose = newRobotPose;
+        else telemetry.log().add("did not update (change too big)");
+//        if(debugMode) pause();
     }
     private static String vectorToString(Vector2d v) {
         return String.format("(%.2f, %.2f)", v.x, v.y);
+    }
+
+    private Vector2d newVector(double x, double y) {
+        if(alliance == Alliance.BLUE)
+            return new Vector2d(x, y);
+        else
+            return new Vector2d(x, -y);
+    }
+    private Vector2d newVector(Vector2d v) {
+        if(alliance == Alliance.BLUE)
+            return v;
+        else
+            return new Vector2d(v.x, -v.y);
+    }
+    private Pose2d newPose(Pose2d pose) {
+        if(alliance == Alliance.BLUE)
+            return pose;
+        else
+            return new Pose2d(newVector(pose.position), pose.heading.inverse().toDouble());
+    }
+    private Pose2d newPose(double x, double y, double heading) {
+        return newPose(new Pose2d(x, y, heading));
     }
 }
