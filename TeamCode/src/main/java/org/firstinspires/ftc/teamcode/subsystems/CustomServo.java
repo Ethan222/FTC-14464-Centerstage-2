@@ -5,25 +5,29 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
+// class to control a servo
 public class CustomServo {
-    public static final String MIN = "MIN", MAX = "MAX";
-    private static final double DEFAULT_SPEED = .01;
-    private final Servo servo;
-    private final double minPosition, maxPosition;
-    private static final double INCREMENT = .01;
+    // static fields (the same for all CustomServo objects)
+    public static final String MIN = "MIN", MAX = "MAX";    // constant strings to represent minimum and maximum states
+    private static final double DEFAULT_SPEED = .01;        // constant value for default speed of a servo
 
+    // instance variables (unique for each servo)
+    private final Servo servo;      // the actual servo
+    private final double minPosition, maxPosition;      // minimum and maximum positions of the servo
+
+    // constructors
     public CustomServo(HardwareMap hardwareMap, String id, double minPos, double maxPos) {
-        servo = hardwareMap.get(Servo.class, id);
-        minPosition = minPos;
+        servo = hardwareMap.get(Servo.class, id);   // initialize servo from the hardware map
+        minPosition = minPos;   // set the min and max positions
         maxPosition = maxPos;
     }
-
     public CustomServo(HardwareMap hardwareMap, String id) {
-        this(hardwareMap, id, 0, 1);
+        this(hardwareMap, id, 0, 1);    // set default min and max positions to 0 and 1, respectively
     }
 
+    // method to set the servo's position
     public void setPosition(double pos) {
-        servo.setPosition(Range.clip(pos, minPosition, maxPosition));
+        servo.setPosition(Range.clip(pos, minPosition, maxPosition));   // makes sure it's a valid position within the range
     }
     public void rotateBy(double change) {
         setPosition(getPosition() + change);
@@ -65,7 +69,7 @@ public class CustomServo {
     }
 
     public double getIncrement() {
-        return INCREMENT;
+        return DEFAULT_SPEED;
     }
     public void rotateIncrementally() {
         rotateBy(getIncrement());

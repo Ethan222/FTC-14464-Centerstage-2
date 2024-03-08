@@ -21,16 +21,18 @@ public class Outtake {
     public Outtake(HardwareMap hardwareMap, String motorName, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
         motor = new Motor(hardwareMap, motorName);
         flipper = new Flipper(hardwareMap, flipperName, .57, 1);
-        extender = new CustomServo(hardwareMap, extenderName, .37, .95);
+        extender = new CustomServo(hardwareMap, extenderName, .37-.2, .95);
         armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .44, .007);
         pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1,.6, .004);
         releaser = new Releaser(hardwareMap, releaserName, .6, 1);
         executorService = Executors.newSingleThreadScheduledExecutor();
+        extender.goToMinPos();
         flipper.goToMinPos();
         center();
     }
     public Action raise() {
         return new SequentialAction(
+                extender.goToMinPosWithActions(),
                 flipper.flip(),
                 new InstantAction(this::center)
         );

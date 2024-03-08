@@ -82,12 +82,6 @@ public class Tele extends LinearOpMode {
             if((gamepad1.start && gamepad2.back) || (gamepad2.start && gamepad2.back))
                 requestOpModeStop();
 
-            driver1.readButtons();
-            if(driver1.wasJustPressed(Button.A))
-                telemetry.log().add("a just pressed");
-            else if(driver1.wasJustReleased(Button.A))
-                telemetry.log().add("a released");
-
             telemetry.update();
         }
         telemetry.log().clear();
@@ -100,6 +94,7 @@ public class Tele extends LinearOpMode {
         telemetry.addData(" arm rotator (left stick x)", robot.outtake.armRotator::getTelemetry);
         telemetry.addData(" pixel rotator (right stick x)", robot.outtake.pixelRotator::getTelemetry);
         telemetry.addData(" releaser (a)", robot.outtake.releaser::getTelemetry);
+        telemetry.addData("hang (back + RS)", robot.hang::getTelemetry);
 //        telemetry.addData("launcher (RB/LB)", robot.launcher::getTelemetry);
         telemetry.addData("auto claw (back + x/y)", robot.autoClaw::getTelemetry);
         telemetry.addData("\nrunning actions len", runningActions::size);
@@ -126,6 +121,7 @@ public class Tele extends LinearOpMode {
     private void getGamepadInput() {
         driver1.readButtons();
         driver2.readButtons();
+        rt.readValue();
 
         if((gamepad1.start && gamepad1.back) || (gamepad2.start && gamepad2.back))
             requestOpModeStop();
@@ -178,7 +174,7 @@ public class Tele extends LinearOpMode {
                     robot.outtake.extender.goToMaxPos();
                 else {
                     robot.outtake.releaser.close();
-                    runningActions.add(robot.outtake.raiseAndExtendSlightly());
+                    runningActions.add(robot.outtake.raise());
                 }
             } else if (driver2.wasJustPressed(Button.DPAD_DOWN))
                 runningActions.add(robot.outtake.lower());
@@ -205,16 +201,12 @@ public class Tele extends LinearOpMode {
             if(driver2.isDown(Button.DPAD_RIGHT)) robot.outtake.moveRight();
             else if(driver2.isDown(Button.DPAD_LEFT)) robot.outtake.moveLeft();
         }
-        if(driver2.wasJustPressed(Button.A) && !driver2.isDown(Button.START)) robot.outtake.release();
-        else if(driver2.wasJustPressed(Button.B) && !driver2.isDown(Button.START)) {
-            if(Objects.equals(robot.outtake.releaser.getState(), Outtake.Releaser.CLOSED))
-                robot.outtake.releaser.open();
-            else robot.outtake.releaser.close();
-        }
+        if(driver2.wasJustPressed(Button.A) && !driver2.isDown(Button.START)) robot.outtake.releaser.open();
+        else if(driver2.wasJustPressed(Button.B) && !driver2.isDown(Button.START)) robot.outtake.releaser.close();
 
         // hang
-//        if(driver2.isDown(Button.BACK))
-//            robot.hang.setPower(-driver2.getRightY());
+        if(driver2.isDown(Button.BACK))
+            robot.hang.setPower(-driver2.getRightY());
 
         // launcher
 //        if(driver2.isDown(Button.RIGHT_BUMPER)) robot.launcher.rotate();

@@ -1,7 +1,9 @@
-package org.firstinspires.ftc.teamcode.auto.AprilTags;
+package org.firstinspires.ftc.teamcode.apriltags;
 
-import org.firstinspires.ftc.teamcode.auto.enums.Alliance;
-import org.firstinspires.ftc.teamcode.auto.enums.Location;
+import androidx.annotation.NonNull;
+
+import org.firstinspires.ftc.teamcode.enums.Alliance;
+import org.firstinspires.ftc.teamcode.enums.Location;
 
 public class Backdrop {
     public Alliance alliance;
@@ -35,5 +37,9 @@ public class Backdrop {
     }
     public boolean contains(int id) {
         return getLocation(id) != null;
+    }
+    @NonNull
+    public String toString() {
+        return alliance.toString();
     }
 }
