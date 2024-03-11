@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -32,9 +33,10 @@ public class TensorFlowObjectDetector {
                 .setModelLabels(LABELS)
                 .build();
         VisionPortal.Builder builder = new VisionPortal.Builder(); // create vision portal using a builder
-        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1")); // set the camera
+        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 2")); // set the camera
         builder.addProcessor(tfod); // set and enable processor
         visionPortal = builder.build(); // build the vision portal using the above settings
+        FtcDashboard.getInstance().startCameraStream(visionPortal, 0);  // stream to dashboard
         tfod.setMinResultConfidence(MIN_CONFIDENCE); // set confidence threshold for TFOD recognitions
         previousRecognitionTimer = new ElapsedTime();
     }
@@ -79,8 +81,9 @@ public class TensorFlowObjectDetector {
 
     public Location getLocation(Recognition recognition)
     {
-        Side side = Auto.getSide();
-        boolean onLeftSideOfTile = (alliance == Alliance.BLUE && side == Side.NEAR) || (alliance == Alliance.RED && side == Side.FAR);
+//        Side side = Auto.getSide();
+//        boolean onLeftSideOfTile = (alliance == Alliance.BLUE && side == Side.NEAR) || (alliance == Alliance.RED && side == Side.FAR);
+        boolean onLeftSideOfTile = false;
         if(recognition == null)
             return onLeftSideOfTile ? Location.RIGHT : Location.LEFT;
 

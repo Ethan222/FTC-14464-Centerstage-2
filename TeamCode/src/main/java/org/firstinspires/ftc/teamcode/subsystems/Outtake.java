@@ -4,6 +4,7 @@ import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.SequentialAction;
+import com.acmerobotics.roadrunner.SleepAction;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import java.util.Objects;
@@ -18,12 +19,14 @@ public class Outtake {
     public final Rotator armRotator, pixelRotator;
     public final Releaser releaser;
     private final ScheduledExecutorService executorService;
+    private Action lowerAction;
     public Outtake(HardwareMap hardwareMap, String motorName, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
         motor = new Motor(hardwareMap, motorName);
+        motor.brakeOnZeroPower();
         flipper = new Flipper(hardwareMap, flipperName, .57, 1);
-        extender = new CustomServo(hardwareMap, extenderName, .37-.2, .95);
-        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .44, .007);
-        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1,.6, .004);
+        extender = new CustomServo(hardwareMap, extenderName, .3, .88);
+        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .42, .007);
+        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .62, .004);
         releaser = new Releaser(hardwareMap, releaserName, .6, 1);
         executorService = Executors.newSingleThreadScheduledExecutor();
         extender.goToMinPos();
@@ -46,10 +49,15 @@ public class Outtake {
     }
     public Action lower() {
         center();
-        return new ParallelAction(
+        lowerAction = new ParallelAction(
+//                motor.goToPreset(0, .4),
                 extender.goToMinPosWithActions(),
-                flipper.unflip()
+                flipper.unflip(.2)
         );
+        return lowerAction;
+    }
+    public Class getLowerActionClass() {
+        return lowerAction == null ? null : lowerAction.getClass();
     }
     public void center() {
         armRotator.center();
@@ -60,17 +68,19 @@ public class Outtake {
         executorService.schedule(releaser::close, 500, TimeUnit.MILLISECONDS);
     }
     public Action goToLeft() {
-        return new ParallelAction(
-            extender.goToPos(.7),
-            armRotator.goToPos(.2-.1),
-            pixelRotator.goToPos(.4)
+        return new SequentialAction(
+                extender.goToPos(.7),
+                new ParallelAction(
+                        armRotator.goToPos(0.2),
+                        pixelRotator.goToPos(0.45)
+                )
         );
     }
     public Action goToRight() {
         return new ParallelAction(
             extender.goToPos(.7),
             armRotator.goToPos(.7),
-            pixelRotator.goToPos(.8)
+            pixelRotator.goToPos(.8+.05)
         );
     }
     public void moveRight() {
