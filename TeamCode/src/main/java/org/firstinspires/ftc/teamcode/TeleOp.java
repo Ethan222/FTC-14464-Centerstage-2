@@ -1,24 +1,18 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
-import com.arcrobotics.ftclib.drivebase.MecanumDrive;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys.Button;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys.Trigger;
 import com.arcrobotics.ftclib.gamepad.TriggerReader;
-import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.enums.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.Flipper;
-import org.firstinspires.ftc.teamcode.subsystems.Intake;
-import org.firstinspires.ftc.teamcode.subsystems.Outtake;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
 import java.util.ArrayList;
@@ -27,40 +21,41 @@ import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-@TeleOp(group = "_tele")
-public class Tele extends LinearOpMode {
-    private static boolean fieldCentric = false;
-    private static final double WHEEL_SLOW_SPEED = .3;
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(group = "_tele")
+public class TeleOp extends LinearOpMode {
+//    private static boolean fieldCentric = false;
+    private static final double WHEEL_SLOW_SPEED = .4;
     private static Pose2d startPose = new Pose2d(0, 0, 0);
-    private static Alliance alliance = Alliance.BLUE;
+//    private static Alliance alliance = Alliance.BLUE;
 
     private Robot robot;
-    private MecanumDrive drive;
+//    private MecanumDrive drive;
     private double speed = 1;
     private GamepadEx driver1, driver2;
-    private TriggerReader rt;
+    private TriggerReader rt1, rt2;
     private List<Action> runningActions = new ArrayList<>();
     private ScheduledExecutorService executorService;
-    private boolean continueIntaking = false;
+    private ElapsedTime loopTimer;
+//    private boolean continueIntaking = false;
     public static void setStartPose(Pose2d pose) { startPose = pose; }
     private void initialize() {
         robot = new Robot(hardwareMap, startPose, telemetry);
 
-        Motor fL = new Motor(hardwareMap, "FL", Motor.GoBILDA.RPM_435);
-        Motor fR = new Motor(hardwareMap, "FR", Motor.GoBILDA.RPM_435);
-        Motor bL = new Motor(hardwareMap, "BL", Motor.GoBILDA.RPM_435);
-        Motor bR = new Motor(hardwareMap, "BR", Motor.GoBILDA.RPM_435);
-        drive = new MecanumDrive(fL, fR, bL, bR);
+//        Motor fL = new Motor(hardwareMap, "FL", Motor.GoBILDA.RPM_435);
+//        Motor fR = new Motor(hardwareMap, "FR", Motor.GoBILDA.RPM_435);
+//        Motor bL = new Motor(hardwareMap, "BL", Motor.GoBILDA.RPM_435);
+//        Motor bR = new Motor(hardwareMap, "BR", Motor.GoBILDA.RPM_435);
+//        drive = new MecanumDrive(fL, fR, bL, bR);
 
         driver1 = new GamepadEx(gamepad1);
         driver2 = new GamepadEx(gamepad2);
-        rt = new TriggerReader(driver2, Trigger.RIGHT_TRIGGER);
+        rt1 = new TriggerReader(driver1, Trigger.RIGHT_TRIGGER);
+        rt2 = new TriggerReader(driver2, Trigger.RIGHT_TRIGGER);
 
         executorService = Executors.newSingleThreadScheduledExecutor();
+        loopTimer = new ElapsedTime();
 
-        alliance = Auto.getAlliance();
-
-        robot.outtake.releaser.close();
+//        alliance = Auto.getAlliance();
     }
 
     @Override public void runOpMode() throws InterruptedException {
@@ -90,14 +85,14 @@ public class Tele extends LinearOpMode {
         telemetry.addData("intake (RT/LT)", robot.intake::getTelemetry);
         telemetry.addData("outtake", robot.outtake.motor::getTelemetry);
         telemetry.addData(" flipper (dpad up/down)", robot.outtake.flipper::getTelemetry);
-        telemetry.addData(" extender (dpad up/down)", robot.outtake.extender::getTelemetry);
+        telemetry.addData(" extender (right stick y)", robot.outtake.extender::getTelemetry);
         telemetry.addData(" arm rotator (left stick x)", robot.outtake.armRotator::getTelemetry);
         telemetry.addData(" pixel rotator (right stick x)", robot.outtake.pixelRotator::getTelemetry);
-        telemetry.addData(" releaser (a)", robot.outtake.releaser::getTelemetry);
+        telemetry.addData(" releaser (a/b)", robot.outtake.releaser::getTelemetry);
         telemetry.addData("hang (back + RS)", robot.hang::getTelemetry);
 //        telemetry.addData("launcher (RB/LB)", robot.launcher::getTelemetry);
-        telemetry.addData("auto claw (back + x/y)", robot.autoClaw::getTelemetry);
-        telemetry.addData("\nrunning actions len", runningActions::size);
+        telemetry.addData("auto claw (x/y)", robot.autoClaw::getTelemetry);
+        telemetry.addLine().addData("\nloop time", "%.1f ms", loopTimer::milliseconds).addData("running actions len", runningActions::size);
 
         TelemetryPacket packet = new TelemetryPacket();
         while (opModeIsActive()) {
@@ -111,6 +106,7 @@ public class Tele extends LinearOpMode {
             runningActions = newActions;
 
             telemetry.update();
+            loopTimer.reset();
         }
     }
 
@@ -121,50 +117,54 @@ public class Tele extends LinearOpMode {
     private void getGamepadInput() {
         driver1.readButtons();
         driver2.readButtons();
-        rt.readValue();
+        rt1.readValue();
+        rt2.readValue();
 
         if((gamepad1.start && gamepad1.back) || (gamepad2.start && gamepad2.back))
             requestOpModeStop();
 
-        if(gamepad1.back && driver2 != driver1) driver2 = driver1;
-        else if(driver2 == driver1) {
+        if(gamepad1.back && driver2 != driver1) {
+            driver2 = driver1;
+            rt2 = new TriggerReader(driver1, Trigger.RIGHT_TRIGGER);
+        } else if(driver2 == driver1) {
             driver2 = new GamepadEx(gamepad2);
-            rt = new TriggerReader(driver2, Trigger.RIGHT_TRIGGER);
+            rt2 = new TriggerReader(driver2, Trigger.RIGHT_TRIGGER);
         }
 
         // drive
         if(!gamepad1.back) {
             if(gamepad1.start) speed = WHEEL_SLOW_SPEED;
             else speed = 1;
-            if(gamepad1.right_bumper)
-                fieldCentric = true;
-            else if(gamepad1.left_bumper)
-                fieldCentric = false;
-            if(gamepad1.x) alliance = Alliance.BLUE;
-            else if(gamepad1.b) alliance = Alliance.RED;
+//            if(gamepad1.right_bumper)
+//                fieldCentric = true;
+//            else if(gamepad1.left_bumper)
+//                fieldCentric = false;
+//            if(gamepad1.x) alliance = Alliance.BLUE;
+//            else if(gamepad1.b) alliance = Alliance.RED;
         }
-        double rotation = 0;
-        if(fieldCentric)
-            rotation = (robot.drive.pose.heading.toDouble() - Math.PI / 2) * (alliance == Alliance.BLUE ? 1 : -1);
-        robot.drive.setDrivePowers(new PoseVelocity2d(
-            rotate(new Vector2d(speed * -gamepad1.left_stick_y, speed * -gamepad1.left_stick_x), rotation),
-            speed * -gamepad1.right_stick_x
-        ));
+//        double rotation = 0;
+//        if(fieldCentric)
+//            rotation = (robot.drive.pose.heading.toDouble() - Math.PI / 2) * (alliance == Alliance.BLUE ? 1 : -1);
+        PoseVelocity2d vel;
+        if(gamepad1.back && !rt1.isDown()) vel = new PoseVelocity2d(new Vector2d(0, 0), 0);
+        else vel = new PoseVelocity2d(new Vector2d(speed * -gamepad1.left_stick_y, speed * -gamepad1.left_stick_x), speed * -gamepad1.right_stick_x);
+        robot.drive.setDrivePowers(vel);
         robot.drive.updatePoseEstimate();
 
         // intake
-        if(rt.wasJustPressed()) {
+        if(rt2.wasJustPressed() || (gamepad1.back && rt1.wasJustPressed())) {
             runningActions.add(robot.prepareForIntake());
-            runningActions.add(robot.intake.inWithPeriodicOut());
+//            runningActions.add(robot.intake.inWithPeriodicOut());
         }
         double lt = driver2.getTrigger(Trigger.LEFT_TRIGGER);
         if(lt > 0)
             robot.intake.out(lt);
-        else if(rt.isDown())
+        else if(rt2.isDown()) {
             robot.outtake.flipper.goToMinPos();
-        else {
+            robot.intake.in();
+        } else {
             robot.intake.stop();
-            cancel(Intake.InWithPeriodicOut.class);
+//            cancel(Intake.InWithPeriodicOut.class);
         }
 
         // outtake
@@ -185,14 +185,15 @@ public class Tele extends LinearOpMode {
                 }
             } else if (driver2.wasJustPressed(Button.DPAD_DOWN))
                 runningActions.add(robot.outtake.lower());
-            robot.outtake.motor.setPower(-gamepad2.left_stick_y);
-//            if (Math.abs(gamepad2.right_stick_y) > Math.abs(gamepad2.right_stick_x))
+            if(!gamepad1.back || !rt1.isDown())
+                robot.outtake.motor.setPower(driver2.getLeftY());
+            else robot.outtake.motor.stop();
             robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 100);
         }
-//        if (Math.abs(gamepad2.left_stick_x) > Math.abs(gamepad2.left_stick_y))
-        robot.outtake.armRotator.rotateBy(gamepad2.left_stick_x / 200);
-        if(Math.abs(gamepad2.right_stick_x) > Math.abs(gamepad2.right_stick_y))
-            robot.outtake.pixelRotator.rotateBy(gamepad2.right_stick_x / 100);
+        if(!gamepad1.back || !rt1.isDown()) {
+            robot.outtake.armRotator.rotateBy(driver2.getLeftX() / 200);
+            robot.outtake.pixelRotator.rotateBy(driver2.getRightX() / 100);
+        }
         if(driver2.wasJustPressed(Button.LEFT_STICK_BUTTON)) {
             if(driver2.isDown(Button.START)) robot.outtake.armRotator.setCenterPos();
             else robot.outtake.armRotator.center();
@@ -201,12 +202,10 @@ public class Tele extends LinearOpMode {
             if(driver2.isDown(Button.START)) robot.outtake.pixelRotator.setCenterPos();
             else robot.outtake.pixelRotator.center();
         }
-        if(!driver2.isDown(Button.DPAD_UP) && !driver2.isDown(Button.DPAD_DOWN)) {
-            if(driver2.isDown(Button.DPAD_RIGHT)) robot.outtake.moveRight();
-            else if(driver2.isDown(Button.DPAD_LEFT)) robot.outtake.moveLeft();
-        }
-        if(driver2.wasJustPressed(Button.A) && !driver2.isDown(Button.START)) robot.outtake.releaser.open();
-        else if(driver2.wasJustPressed(Button.B) && !driver2.isDown(Button.START)) robot.outtake.releaser.close();
+        if(driver2.isDown(Button.DPAD_RIGHT)) robot.outtake.moveRight();
+        else if(driver2.isDown(Button.DPAD_LEFT)) robot.outtake.moveLeft();
+        if(driver2.isDown(Button.A) && !driver2.isDown(Button.START)) robot.outtake.releaser.open();
+        else if(driver2.isDown(Button.B) && !driver2.isDown(Button.START)) robot.outtake.releaser.close();
 
         // hang
         if(driver2.isDown(Button.BACK))
@@ -217,14 +216,22 @@ public class Tele extends LinearOpMode {
 //        else if(driver2.isDown(Button.LEFT_BUMPER)) robot.launcher.unrotate();
 
         // auto claw
-        if(gamepad2.x && gamepad2.back)
+        if(driver2.isDown(Button.X))
             robot.autoClaw.down(.01);
-        else if(gamepad2.y && gamepad2.back)
+        else if(driver2.isDown(Button.Y))
             robot.autoClaw.up(.01);
 
         // clear running actions
         if((gamepad1.start && gamepad1.x) || (gamepad2.start && gamepad2.x))
             runningActions.clear();
+    }
+
+    private boolean currentlyRunning(Class targetAction) {
+        for(Action action : runningActions) {
+            if(action.getClass().equals(targetAction))
+                return true;
+        }
+        return false;
     }
 
     private Vector2d rotate(Vector2d orig, double rotation) {

@@ -23,10 +23,10 @@ public class Outtake {
     public Outtake(HardwareMap hardwareMap, String motorName, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
         motor = new Motor(hardwareMap, motorName);
         motor.brakeOnZeroPower();
-        flipper = new Flipper(hardwareMap, flipperName, .57, 1);
+        flipper = new Flipper(hardwareMap, flipperName, .58-.01, 1);
         extender = new CustomServo(hardwareMap, extenderName, .3, .88);
         armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .42, .007);
-        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .62, .004);
+        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .72, .004);
         releaser = new Releaser(hardwareMap, releaserName, .6, 1);
         executorService = Executors.newSingleThreadScheduledExecutor();
         extender.goToMinPos();

@@ -24,7 +24,6 @@ public class Intake {
     public void out() { out(1); }
     public void stop() {
         motor.stop();
-        if(action != null && action.getClass().equals(InWithPeriodicOut.class)) cancel();
     }
     public double getPower() {
         return motor.getPower();
@@ -66,8 +65,5 @@ public class Intake {
     public Action inWithPeriodicOut() {
         action = new InWithPeriodicOut();
         return action;
-    }
-    public void cancel() {
-        action = new NullAction();
     }
 }
