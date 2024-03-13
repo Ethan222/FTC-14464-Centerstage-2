@@ -54,7 +54,7 @@ public class TestAprilTagDetection extends LinearOpMode
     @Override
     public void runOpMode()
     {
-        robot = new Robot(hardwareMap, new Pose2d(0, 0, 0), telemetry);
+        robot = new Robot(hardwareMap, new Pose2d(0, 0, 0));
         robot.outtake.releaser.close();
 
         aprilTagDetector = new AprilTagDetector(hardwareMap);

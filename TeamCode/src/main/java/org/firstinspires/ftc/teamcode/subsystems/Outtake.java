@@ -23,17 +23,17 @@ public class Outtake {
     public Outtake(HardwareMap hardwareMap, String motorName, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
         motor = new Motor(hardwareMap, motorName);
         motor.brakeOnZeroPower();
-        flipper = new Flipper(hardwareMap, flipperName, .58-.01, 1);
+        flipper = new Flipper(hardwareMap, flipperName, 0.5, 1);
         extender = new CustomServo(hardwareMap, extenderName, .3, .88);
-        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .42, .007);
+        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .5, .007);
         pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .72, .004);
         releaser = new Releaser(hardwareMap, releaserName, .6, 1);
         executorService = Executors.newSingleThreadScheduledExecutor();
         extender.goToMinPos();
-        flipper.goToMinPos();
         center();
     }
     public Action raise() {
+        armRotator.setCenterPos();
         return new SequentialAction(
                 extender.goToMinPosWithActions(),
                 flipper.flip(),
@@ -72,15 +72,15 @@ public class Outtake {
                 extender.goToPos(.7),
                 new ParallelAction(
                         armRotator.goToPos(0.2),
-                        pixelRotator.goToPos(0.45)
+                        pixelRotator.goToPos(0.45+.1)
                 )
         );
     }
     public Action goToRight() {
         return new ParallelAction(
-            extender.goToPos(.7),
+            extender.goToPos(0.6-.2),
             armRotator.goToPos(.7),
-            pixelRotator.goToPos(.8+.05)
+            pixelRotator.goToPos(0.85)
         );
     }
     public void moveRight() {

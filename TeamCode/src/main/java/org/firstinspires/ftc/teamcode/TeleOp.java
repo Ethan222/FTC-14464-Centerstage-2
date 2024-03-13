@@ -39,7 +39,7 @@ public class TeleOp extends LinearOpMode {
 //    private boolean continueIntaking = false;
     public static void setStartPose(Pose2d pose) { startPose = pose; }
     private void initialize() {
-        robot = new Robot(hardwareMap, startPose, telemetry);
+        robot = new Robot(hardwareMap, startPose);
 
 //        Motor fL = new Motor(hardwareMap, "FL", Motor.GoBILDA.RPM_435);
 //        Motor fR = new Motor(hardwareMap, "FR", Motor.GoBILDA.RPM_435);
@@ -90,8 +90,10 @@ public class TeleOp extends LinearOpMode {
         telemetry.addData(" pixel rotator (right stick x)", robot.outtake.pixelRotator::getTelemetry);
         telemetry.addData(" releaser (a/b)", robot.outtake.releaser::getTelemetry);
         telemetry.addData("hang (back + RS)", robot.hang::getTelemetry);
-//        telemetry.addData("launcher (RB/LB)", robot.launcher::getTelemetry);
-        telemetry.addData("auto claw (x/y)", robot.autoClaw::getTelemetry);
+        telemetry.addData(" left servo", robot.hang.leftServo::getTelemetry);
+        telemetry.addData(" right servo", robot.hang.rightServo::getTelemetry);
+        telemetry.addData("launcher (x/y)", robot.launcher::getTelemetry);
+        telemetry.addData("auto claw (back x/y)", robot.autoClaw::getTelemetry);
         telemetry.addLine().addData("\nloop time", "%.1f ms", loopTimer::milliseconds).addData("running actions len", runningActions::size);
 
         TelemetryPacket packet = new TelemetryPacket();
@@ -190,7 +192,7 @@ public class TeleOp extends LinearOpMode {
             else robot.outtake.motor.stop();
             robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 100);
         }
-        if(!gamepad1.back || !rt1.isDown()) {
+        if(!driver2.isDown(Button.BACK)) {
             robot.outtake.armRotator.rotateBy(driver2.getLeftX() / 200);
             robot.outtake.pixelRotator.rotateBy(driver2.getRightX() / 100);
         }
@@ -208,18 +210,34 @@ public class TeleOp extends LinearOpMode {
         else if(driver2.isDown(Button.B) && !driver2.isDown(Button.START)) robot.outtake.releaser.close();
 
         // hang
-        if(driver2.isDown(Button.BACK))
+        if(driver2.isDown(Button.BACK)) {
             robot.hang.setPower(-driver2.getRightY());
-
-        // launcher
-//        if(driver2.isDown(Button.RIGHT_BUMPER)) robot.launcher.rotate();
-//        else if(driver2.isDown(Button.LEFT_BUMPER)) robot.launcher.unrotate();
+            robot.hang.rightServo.rotateBy(driver2.getRightX() / 200);
+            robot.hang.leftServo.rotateBy(driver2.getLeftX() / 200);
+        }
+        if(driver2.isDown(Button.RIGHT_BUMPER)) {
+            if(driver2.isDown(Button.BACK)) {
+                robot.hang.rightServo.rotateIncrementally();
+                robot.hang.leftServo.rotateIncrementally();
+            } else robot.hang.raise();
+        } else if(driver2.isDown(Button.LEFT_BUMPER)) {
+            if(driver2.isDown(Button.BACK)) {
+                robot.hang.rightServo.unrotateIncrementally();
+                robot.hang.leftServo.unrotateIncrementally();
+            } else robot.hang.lower();
+        }
 
         // auto claw
-        if(driver2.isDown(Button.X))
-            robot.autoClaw.down(.01);
-        else if(driver2.isDown(Button.Y))
-            robot.autoClaw.up(.01);
+        if(driver2.isDown(Button.BACK)) {
+            if (driver2.isDown(Button.X))
+                robot.autoClaw.down(.01);
+            else if (driver2.isDown(Button.Y))
+                robot.autoClaw.up(.01);
+        } else {
+            // launcher
+            if(driver2.isDown(Button.Y)) robot.launcher.rotate();
+            else if(driver2.isDown(Button.X)) robot.launcher.unrotate();
+        }
 
         // clear running actions
         if((gamepad1.start && gamepad1.x) || (gamepad2.start && gamepad2.x))

@@ -36,8 +36,8 @@ public class Auto extends LinearOpMode {
     private enum ParkPosition {
         CORNER, CENTER
     }
-    private static Alliance alliance = Alliance.BLUE;
-    private static Side side = Side.NEAR;
+    private static Alliance alliance = Alliance.RED;
+    private static Side side = Side.FAR;
     private static boolean wait = false, goThroughStageDoor = true, placeOnBackdrop = true, useAprilTags = true, pickFromStack = true;
     private static ParkPosition parkPosition = ParkPosition.CORNER;
     private static boolean debugMode = true;
@@ -60,40 +60,42 @@ public class Auto extends LinearOpMode {
         public Pose2d startPose;
         public Vector2d backdropPose, stackPose, parkPose;
         public final Vector2d aprilTagOffset = new Vector2d(alliance == Alliance.BLUE ? -17 : -17-5, 0);
-        public Vector2d trussFront = newVector(-30-5, goThroughStageDoor ? -2 : 63), trussBack;
+        public Vector2d trussFront, trussBack;
         public int reversed = (alliance == Alliance.BLUE) ? 1 : -1;
         public Trajectories() {
             double startX;
             if(side == Side.NEAR) startX = (alliance == Alliance.BLUE) ? 1 : 13+1;
             else startX = alliance == Alliance.BLUE ? -42+3 : -25;
             startPose = newPose(startX, 64, -Math.PI/2);
-            stackPose = newVector(-61-3, -2-3); // <- stack closest to center. middle stack coords: (-57, 20)
-//            if(side == Side.FAR) stackPose = stackPose.plus(new Vector2d(-3, 0));
-            if(alliance == Alliance.RED && side == Side.FAR) trussFront = trussFront.plus(new Vector2d(0, -4));
-            trussBack = new Vector2d(33, trussFront.y);
-            backdropPose = new Vector2d(59, alliance == Alliance.BLUE ? 30-.3 : -31+4);
-            if(side == Side.FAR) backdropPose = backdropPose.plus(newVector(4, goThroughStageDoor ? 5 : -5));
+            stackPose = newVector(-58, -3); // <- stack closest to center. middle stack coords: (-57, 20)
+            if(side == Side.FAR) stackPose = stackPose.plus(new Vector2d(-3-4, -3));
+            trussFront = newVector(-35, goThroughStageDoor ? 5 : 63);
+            if(side == Side.FAR) trussFront = trussFront.plus(new Vector2d(0, blue() ? -4 : -4-5));
+            else if(alliance == Alliance.RED) trussFront = trussFront.plus(new Vector2d(0, 6+2));
+            trussBack = new Vector2d(33, trussFront.y + (blue() ? 0 : 5+3));
+            backdropPose = new Vector2d(61, alliance == Alliance.BLUE ? 30-.3 : -31+4);
+            if(side == Side.FAR) backdropPose = backdropPose.plus(newVector(blue() ? 4 : -4, goThroughStageDoor ? 5 : -5));
             parkPose = newVector(56, parkPosition == ParkPosition.CORNER ? 69+1 : -9);
             if(alliance == Alliance.RED && side == Side.FAR) parkPose = parkPose.plus(new Vector2d(0, -2));
         }
         public Action generateSpikeMarkTraj() {
             if(side == Side.NEAR) {
                 if ((alliance == Alliance.BLUE && propLocation == Location.LEFT) || (alliance == Alliance.RED && propLocation == Location.RIGHT)) {
-                    Vector2d pose = alliance == Alliance.BLUE ? new Vector2d(29-1, 40) : new Vector2d(25-.5, -40.5+1);
+                    Vector2d pose = alliance == Alliance.BLUE ? new Vector2d(28-.5, 40) : new Vector2d(25-.5, -40.5+1);
                     return robot.drive.actionBuilder(robot.drive.pose)
                             .strafeToSplineHeading(pose, -Math.PI/2 * reversed)
                             .build();
                 } else if (propLocation == Location.CENTER) {
                     if(pickFromStack && blue())
                         return robot.drive.actionBuilder(robot.drive.pose)
-                                .strafeToSplineHeading(new Vector2d(25, 10+1), Math.PI)
+                                .strafeToSplineHeading(new Vector2d(26, 13-.5), Math.PI)
                                 .build();
-                    Vector2d pose = alliance == Alliance.BLUE ? new Vector2d(14, 30-1) : new Vector2d(23.5, -20+8);
+                    Vector2d pose = alliance == Alliance.BLUE ? new Vector2d(14, 30-1) : new Vector2d(23.5, -12-2);
                     return robot.drive.actionBuilder(robot.drive.pose)
                             .strafeToSplineHeading(pose, alliance == Alliance.BLUE ? -Math.PI/2 : Math.PI)
                             .build();
                 } else { // blue right/red left
-                    Vector2d spikeMarkPose = newVector(alliance == Alliance.BLUE ? 7-.5 : 7, 32);
+                    Vector2d spikeMarkPose = newVector(alliance == Alliance.BLUE ? 8.0+1 : 7+5, 32);
                     if(robot.drive.pose.position.x > 40)
                         return robot.drive.actionBuilder(robot.drive.pose)
                                 .strafeToSplineHeading(spikeMarkPose, Math.toRadians(-170 * reversed))
@@ -107,9 +109,9 @@ public class Auto extends LinearOpMode {
             else if(side == Side.FAR) {
                 if ((alliance == Alliance.BLUE && propLocation == Location.LEFT) || (alliance == Alliance.RED && propLocation == Location.RIGHT)) {
                     return robot.drive.actionBuilder(robot.drive.pose)
-                            .strafeToSplineHeading(newVector(-37-1, 36), 0)
+                            .strafeToSplineHeading(newVector(-38, 36), 0)
 //                            .turnTo(0)
-                            .strafeTo(blue() ? new Vector2d(-27.5, 29) : new Vector2d(-31, -28+6))
+                            .strafeTo(blue() ? new Vector2d(-27.5-1.5, 29) : new Vector2d(-31, -28+6))
                             .build();
                 } else if (propLocation == Location.CENTER) {
                     if(alliance == Alliance.BLUE)
@@ -117,7 +119,7 @@ public class Auto extends LinearOpMode {
                             .strafeToSplineHeading(newVector(-52.5, 16), 0)
                             .build();
                     else return robot.drive.actionBuilder(robot.drive.pose)
-                            .strafeToSplineHeading(new Vector2d(-50+4, -26-4), Math.PI/2)
+                            .strafeToSplineHeading(new Vector2d(-56, -6+1), 0)
                             .build();
                 } else { // blue right/red left
                     if(goThroughStageDoor || pickFromStack || alliance == Alliance.RED)
@@ -139,9 +141,9 @@ public class Auto extends LinearOpMode {
                         .strafeToSplineHeading(newVector(robot.drive.pose.position.x+5, trajectories.trussFront.y), Math.PI)
 //                        .turnTo(Math.PI)
                         .strafeTo(new Vector2d(5, trussBack.y))
-                        .strafeToSplineHeading(newVector(backdropPose.x-2, propLocation == Location.RIGHT ? 22 : 18), Math.PI)
-                        .afterDisp(5, robot.outtake.raise())
-                        .afterDisp(20-5, blue() ? robot.outtake.goToLeft() : robot.outtake.goToRight())
+                        .strafeToSplineHeading(newVector(backdropPose.x-1, propLocation == Location.RIGHT ? 22 : 19), Math.PI)
+                        .afterDisp(0.5-.4, robot.outtake.raise())
+                        .afterDisp(5-3, blue() ? robot.outtake.goToLeft() : robot.outtake.goToRight())
                         .build();
             }
             if(robot.drive.pose.position.x > 0)
@@ -174,8 +176,7 @@ public class Auto extends LinearOpMode {
         public Action generateToStack() {
             if(robot.drive.pose.position.x > 0)
                 return robot.drive.actionBuilder(robot.drive.pose)
-                        .strafeToSplineHeading(trussBack, Math.PI)
-    //                    .strafeTo(trussFront)
+                        .strafeToSplineHeading(trussBack.plus(new Vector2d(0, blue() ? 0 : 6+4)), Math.PI)
                         .strafeToSplineHeading(stackPose, Math.PI)
                         .afterDisp(3*12, () -> robot.intake.in())
                         .build();
@@ -303,11 +304,11 @@ public class Auto extends LinearOpMode {
             moveToBackdrop(true);
             placeOnBackdrop();
         }
-        if(debugMode) pause();
+//        if(debugMode) pause();
 
         if(pickFromStack) {
             pickFromStack();
-            if(debugMode) pause();
+//            if(debugMode) pause();
             if(placeOnBackdrop) {
                 moveToBackdrop(false);
                 placeOnBackdrop();
@@ -349,7 +350,7 @@ public class Auto extends LinearOpMode {
         if(debugMode)
             telemetry.addLine("DEBUG");
         status = telemetry.addData("\nStatus", "loading...");
-        telemetry.addData("runtime", "%.1f", this::getRuntime);
+        telemetry.addData("runtime", "%d", runTimer::elapsedTime);
     }
 
     private void placePurplePixel() {
@@ -359,13 +360,13 @@ public class Auto extends LinearOpMode {
         ));
         robot.autoClaw.up();
         Actions.runBlocking(new SleepAction(0.9));
-        if((alliance == Alliance.BLUE && side == Side.NEAR && propLocation == Location.LEFT) || (alliance == Alliance.RED && side == Side.NEAR && propLocation != Location.CENTER)) {
+        if((alliance == Alliance.BLUE && side == Side.NEAR && propLocation == Location.LEFT) || (alliance == Alliance.RED && side == Side.NEAR && propLocation == Location.RIGHT)) {
             Pose2d start = robot.drive.pose;
             Actions.runBlocking(robot.drive.actionBuilder(start)
                 .strafeTo(new Vector2d(start.position.x, start.position.y + 7 * (alliance == Alliance.BLUE ? 1 : -1)))
                 .turnTo(Math.PI)
                 .build());
-        } else if(alliance == Alliance.RED && side == Side.FAR && propLocation == Location.RIGHT)
+        } else if(alliance == Alliance.RED && side == Side.FAR && propLocation != Location.LEFT)
             Actions.runBlocking(robot.drive.actionBuilder(robot.drive.pose)
                     .lineToX(robot.drive.pose.position.x - 5).build());
 //        if(debugMode) pause();
@@ -381,7 +382,7 @@ public class Auto extends LinearOpMode {
     }
     private void placeOnBackdrop() {
         Actions.runBlocking(new SequentialAction(
-                new SleepAction(0.5+.2),
+                new SleepAction(0.7-.2),
                 new InstantAction(() -> {
                     robot.outtake.releaser.open();
                     robot.outtake.extender.goToMaxPos();
@@ -409,17 +410,20 @@ public class Auto extends LinearOpMode {
         Actions.runBlocking(new ParallelAction(
                 trajectories.generateToStack(),
                 new SequentialAction(
-                        new SleepAction(.2+.2),
+                        new SleepAction(0.4),
                         robot.prepareForIntake()
                 )
         ));
-//        if(debugMode) pause();
-//        robot.intake.in();
+        if(debugMode) {
+            robot.intake.stop();
+            pause();
+        }
+        robot.intake.in();
         Pose2d start = robot.drive.pose;
         Actions.runBlocking(robot.drive.actionBuilder(start)
-                .strafeTo(start.position.plus(newVector(-11+1, 3)))
-                .strafeTo(start.position.plus(newVector(-7, 21)))
-                .strafeTo(start.position.plus(newVector(0, 5)))
+//                .strafeTo(start.position.plus(newVector(-10+1, 3)))
+                .strafeTo(start.position.plus(newVector(-6, 18-2)))
+                .strafeTo(start.position.plus(newVector(-4-5, 5-3)))
 //                .afterDisp(5, () -> robot.intake.out())
                 .build()
         );
@@ -454,7 +458,7 @@ public class Auto extends LinearOpMode {
         status = telemetry.addData("Status", "initializing...").setRetained(true);
         telemetry.update();
 
-        robot = new Robot(hardwareMap, telemetry);
+        robot = new Robot(hardwareMap);
         robot.outtake.releaser.open();
         try {
             propDetector = new TensorFlowObjectDetector(hardwareMap);

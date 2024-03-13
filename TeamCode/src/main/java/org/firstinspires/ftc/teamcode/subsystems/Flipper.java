@@ -13,25 +13,21 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @Config
 public class Flipper extends CustomServo {
     public static final String DOWN = "DOWN", UP = "UP";
-    public static double UP_POSITION = .87, NORMAL_SPEED = .01, SLOW_SPEED = .0006, SLOW_DOWN_POSITION = 0.63+.005, INCREMENT = .001;
+    public static double UP_POSITION = .87, DOWN_POSITION = .58, MAX_SPEED = .02, MIN_SPEED = .0005, INCREMENT = .001;
     public Flipper(HardwareMap hardwareMap, String id, double minPos, double maxPos) {
         super(hardwareMap, id, minPos, maxPos);
+        setPosition(DOWN_POSITION);
     }
     public class Unflip implements Action {
-        private boolean canceled;
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-            if(canceled) return false;
-            if(getPosition() > SLOW_DOWN_POSITION) {
-                rotateBy(-NORMAL_SPEED);
+            double psn = getPosition();
+            double speed = Math.pow((psn - DOWN_POSITION) / (UP_POSITION - DOWN_POSITION), 2) * MAX_SPEED + MIN_SPEED;
+            if(psn > DOWN_POSITION) {
+                rotateBy(-speed);
                 return true;
-            } else if(getPosition() > getMinPos()) {
-                rotateBy(-SLOW_SPEED);
-                return true;
-            } else return false;
-        }
-        public void cancel() {
-            canceled = true;
+            }
+            return false;
         }
     }
     public Action unflip(double delay) {

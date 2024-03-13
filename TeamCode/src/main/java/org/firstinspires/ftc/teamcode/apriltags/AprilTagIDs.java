@@ -12,12 +12,12 @@ public class AprilTagIDs {
     public AprilTagIDs() {
         tagPoses = new HashMap<>();
         double backdropX = 59.0;
-        tagPoses.put(blueBackdrop.LEFT, new Vector2d(backdropX, 42+2));
+        tagPoses.put(blueBackdrop.LEFT, new Vector2d(backdropX, 40));
         tagPoses.put(blueBackdrop.CENTER, new Vector2d(backdropX, 35-1));
         tagPoses.put(blueBackdrop.RIGHT, new Vector2d(backdropX, 19+4));
         tagPoses.put(redBackdrop.LEFT, new Vector2d(backdropX, 23-5));
         tagPoses.put(redBackdrop.CENTER, new Vector2d(backdropX, 34));
-        tagPoses.put(redBackdrop.RIGHT, tagPoses.get(blueBackdrop.LEFT).plus(new Vector2d(0, -2)));
+        tagPoses.put(redBackdrop.RIGHT, new Vector2d(backdropX, 38-2));
     }
     public static Backdrop getBackdrop(Alliance alliance) {
         if(alliance == Alliance.BLUE)

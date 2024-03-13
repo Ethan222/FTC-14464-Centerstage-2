@@ -4,7 +4,6 @@ import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 
 public class Robot {
@@ -14,18 +13,16 @@ public class Robot {
     public Hang hang;
     public Launcher launcher;
     public AutoClaw autoClaw;
-    public Robot(HardwareMap hardwareMap, Pose2d startPose, Telemetry telemetry) {
-        this(hardwareMap, telemetry);
+    public Robot(HardwareMap hardwareMap, Pose2d startPose) {
+        this(hardwareMap);
         initDrive(hardwareMap, startPose);
     }
-    public Robot(HardwareMap hardwareMap, Telemetry telemetry) {
+    public Robot(HardwareMap hardwareMap) {
         drive = null; // can't init drive w/o startPose
         intake = new Intake(hardwareMap, "intake");
         outtake = new Outtake(hardwareMap,"motor1","servo0","servo1","servo2","servo4","servo3");
-        hang = new Hang(hardwareMap, "motor0");
-        try {
-            launcher = new Launcher(hardwareMap, "launcher");
-        } catch (Exception ignored) {}
+        hang = new Hang(hardwareMap, "motor0", "servo5", "servoEH1");
+        launcher = new Launcher(hardwareMap, "launcher");
         autoClaw = new AutoClaw(hardwareMap, "auto");
     }
     public void initDrive(HardwareMap hardwareMap, Pose2d startPose) {
