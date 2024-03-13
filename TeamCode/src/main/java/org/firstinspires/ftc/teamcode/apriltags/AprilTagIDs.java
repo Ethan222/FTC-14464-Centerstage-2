@@ -1,8 +1,12 @@
 package org.firstinspires.ftc.teamcode.apriltags;
 
 import com.acmerobotics.roadrunner.Vector2d;
+
+import org.firstinspires.ftc.teamcode.Auto;
 import org.firstinspires.ftc.teamcode.enums.Alliance;
 import org.firstinspires.ftc.teamcode.enums.Location;
+import org.firstinspires.ftc.teamcode.enums.Side;
+
 import java.util.HashMap;
 
 public class AprilTagIDs {
@@ -12,7 +16,7 @@ public class AprilTagIDs {
     public AprilTagIDs() {
         tagPoses = new HashMap<>();
         double backdropX = 59.0;
-        tagPoses.put(blueBackdrop.LEFT, new Vector2d(backdropX, 40));
+        tagPoses.put(blueBackdrop.LEFT, new Vector2d(backdropX, Auto.getSide() == Side.NEAR ? 40 : 40-4));
         tagPoses.put(blueBackdrop.CENTER, new Vector2d(backdropX, 35-1));
         tagPoses.put(blueBackdrop.RIGHT, new Vector2d(backdropX, 19+4));
         tagPoses.put(redBackdrop.LEFT, new Vector2d(backdropX, 23-5));

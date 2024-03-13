@@ -20,25 +20,30 @@ public class Outtake {
     public final Releaser releaser;
     private final ScheduledExecutorService executorService;
     private Action lowerAction;
+    private Class raiseActionClass;
+
     public Outtake(HardwareMap hardwareMap, String motorName, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
         motor = new Motor(hardwareMap, motorName);
         motor.brakeOnZeroPower();
-        flipper = new Flipper(hardwareMap, flipperName, 0.5, 1);
+        flipper = new Flipper(hardwareMap, flipperName, 0.45, 1);
         extender = new CustomServo(hardwareMap, extenderName, .3, .88);
-        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .5, .007);
-        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .72, .004);
-        releaser = new Releaser(hardwareMap, releaserName, .6, 1);
+        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .5, 0.005-.002);
+        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .72, .004-.002);
+        releaser = new Releaser(hardwareMap, releaserName, 0.4, .6);
         executorService = Executors.newSingleThreadScheduledExecutor();
         extender.goToMinPos();
         center();
     }
     public Action raise() {
         armRotator.setCenterPos();
-        return new SequentialAction(
-                extender.goToMinPosWithActions(),
+        extender.goToMinPos();
+        Action raiseAction = new SequentialAction(
+//                extender.goToMinPosWithActions(),
                 flipper.flip(),
                 new InstantAction(this::center)
         );
+        raiseActionClass = raiseAction.getClass();
+        return raiseAction;
     }
     public Action raiseAndExtendSlightly() {
         return new SequentialAction(
@@ -48,7 +53,8 @@ public class Outtake {
         );
     }
     public Action lower() {
-        center();
+        pixelRotator.center();
+        armRotator.setPosition(armRotator.CENTER_POS - .02);
         lowerAction = new ParallelAction(
 //                motor.goToPreset(0, .4),
                 extender.goToMinPosWithActions(),
@@ -90,6 +96,10 @@ public class Outtake {
     public void moveLeft() {
         armRotator.unrotateIncrementally();
         pixelRotator.unrotateIncrementally();
+    }
+
+    public Class getRaiseActionClass() {
+        return raiseActionClass;
     }
 
     public static class Rotator extends CustomServo {
@@ -141,6 +151,14 @@ public class Outtake {
             else if(Math.abs(pos - getMaxPos()) < ERROR)
                 return CLOSED;
             else return "";
+        }
+
+        public void openIncrementally() {
+            unrotateIncrementally();
+        }
+
+        public void closeIncrementally() {
+            rotateIncrementally();
         }
     }
 }

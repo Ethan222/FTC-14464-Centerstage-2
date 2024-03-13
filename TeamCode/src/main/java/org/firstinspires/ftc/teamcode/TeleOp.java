@@ -17,7 +17,6 @@ import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -35,7 +34,7 @@ public class TeleOp extends LinearOpMode {
     private TriggerReader rt1, rt2;
     private List<Action> runningActions = new ArrayList<>();
     private ScheduledExecutorService executorService;
-    private ElapsedTime loopTimer;
+    private ElapsedTime loopTimer, armTimer;
 //    private boolean continueIntaking = false;
     public static void setStartPose(Pose2d pose) { startPose = pose; }
     private void initialize() {
@@ -54,6 +53,7 @@ public class TeleOp extends LinearOpMode {
 
         executorService = Executors.newSingleThreadScheduledExecutor();
         loopTimer = new ElapsedTime();
+        armTimer = new ElapsedTime();
 
 //        alliance = Auto.getAlliance();
     }
@@ -94,7 +94,7 @@ public class TeleOp extends LinearOpMode {
         telemetry.addData(" right servo", robot.hang.rightServo::getTelemetry);
         telemetry.addData("launcher (x/y)", robot.launcher::getTelemetry);
         telemetry.addData("auto claw (back x/y)", robot.autoClaw::getTelemetry);
-        telemetry.addLine().addData("\nloop time", "%.1f ms", loopTimer::milliseconds).addData("running actions len", runningActions::size);
+        telemetry.addData("\nloop time", "%.1f ms", loopTimer::milliseconds);
 
         TelemetryPacket packet = new TelemetryPacket();
         while (opModeIsActive()) {
@@ -127,10 +127,10 @@ public class TeleOp extends LinearOpMode {
 
         if(gamepad1.back && driver2 != driver1) {
             driver2 = driver1;
-            rt2 = new TriggerReader(driver1, Trigger.RIGHT_TRIGGER);
-        } else if(driver2 == driver1) {
+//            rt2 = new TriggerReader(driver1, Trigger.RIGHT_TRIGGER);
+        } else if(!gamepad1.back && driver2 == driver1) {
             driver2 = new GamepadEx(gamepad2);
-            rt2 = new TriggerReader(driver2, Trigger.RIGHT_TRIGGER);
+//            rt2 = new TriggerReader(driver2, Trigger.RIGHT_TRIGGER);
         }
 
         // drive
@@ -151,19 +151,19 @@ public class TeleOp extends LinearOpMode {
         if(gamepad1.back && !rt1.isDown()) vel = new PoseVelocity2d(new Vector2d(0, 0), 0);
         else vel = new PoseVelocity2d(new Vector2d(speed * -gamepad1.left_stick_y, speed * -gamepad1.left_stick_x), speed * -gamepad1.right_stick_x);
         robot.drive.setDrivePowers(vel);
-        robot.drive.updatePoseEstimate();
+//        robot.drive.updatePoseEstimate();
 
         // intake
         if(rt2.wasJustPressed() || (gamepad1.back && rt1.wasJustPressed())) {
             runningActions.add(robot.prepareForIntake());
 //            runningActions.add(robot.intake.inWithPeriodicOut());
         }
-        double lt = driver2.getTrigger(Trigger.LEFT_TRIGGER);
+        double lt = driver2.getTrigger(Trigger.LEFT_TRIGGER), rt = driver2.getTrigger(Trigger.RIGHT_TRIGGER);
         if(lt > 0)
             robot.intake.out(lt);
-        else if(rt2.isDown()) {
-            robot.outtake.flipper.goToMinPos();
-            robot.intake.in();
+        else if(rt > 0) {
+//            robot.outtake.flipper.goToMinPos();
+            robot.intake.in(rt);
         } else {
             robot.intake.stop();
 //            cancel(Intake.InWithPeriodicOut.class);
@@ -175,26 +175,30 @@ public class TeleOp extends LinearOpMode {
                 robot.outtake.flipper.rotateIncrementally();
             else if (gamepad2.dpad_down)
                 robot.outtake.flipper.unrotateIncrementally();
-            robot.outtake.flipper.rotateBy(-gamepad2.left_stick_y / 300);
+            double lsy = gamepad2.left_stick_y;
+            if(Math.abs(lsy) > Math.abs(gamepad2.left_stick_x))
+                robot.outtake.flipper.rotateBy(-lsy / 300);
         } else {
-            if (driver2.wasJustPressed(Button.DPAD_UP)) {
-                if(Objects.equals(robot.outtake.flipper.getState(), Flipper.UP))
+            if (driver2.isDown(Button.DPAD_UP) && !currentlyRunning(robot.outtake.getRaiseActionClass())) {
+                if(robot.outtake.flipper.getState().equals(Flipper.UP) && armTimer.seconds() > .5)
                     robot.outtake.extender.goToMaxPos();
                 else {
                     robot.outtake.releaser.close();
                     cancel(robot.outtake.getLowerActionClass());
                     runningActions.add(robot.outtake.raise());
+                    armTimer.reset();
                 }
-            } else if (driver2.wasJustPressed(Button.DPAD_DOWN))
+            } else if (driver2.isDown(Button.DPAD_DOWN) && !currentlyRunning(robot.outtake.getLowerActionClass()))
                 runningActions.add(robot.outtake.lower());
-            if(!gamepad1.back || !rt1.isDown())
-                robot.outtake.motor.setPower(driver2.getLeftY());
+            double lsy = driver2.getLeftY();
+            if((!gamepad1.back || !rt1.isDown()) && Math.abs(lsy) > Math.abs(driver2.getLeftX()))
+                robot.outtake.motor.setPower(lsy);
             else robot.outtake.motor.stop();
             robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 100);
         }
         if(!driver2.isDown(Button.BACK)) {
-            robot.outtake.armRotator.rotateBy(driver2.getLeftX() / 200);
-            robot.outtake.pixelRotator.rotateBy(driver2.getRightX() / 100);
+            robot.outtake.armRotator.rotateBy(driver2.getLeftX() / 500);
+            robot.outtake.pixelRotator.rotateBy(driver2.getRightX() / 500);
         }
         if(driver2.wasJustPressed(Button.LEFT_STICK_BUTTON)) {
             if(driver2.isDown(Button.START)) robot.outtake.armRotator.setCenterPos();
@@ -206,14 +210,21 @@ public class TeleOp extends LinearOpMode {
         }
         if(driver2.isDown(Button.DPAD_RIGHT)) robot.outtake.moveRight();
         else if(driver2.isDown(Button.DPAD_LEFT)) robot.outtake.moveLeft();
-        if(driver2.isDown(Button.A) && !driver2.isDown(Button.START)) robot.outtake.releaser.open();
-        else if(driver2.isDown(Button.B) && !driver2.isDown(Button.START)) robot.outtake.releaser.close();
+        if(driver2.isDown(Button.A) && !driver2.isDown(Button.START)) {
+            if(gamepad2.back) robot.outtake.releaser.openIncrementally();
+            else robot.outtake.releaser.open();
+        } else if(driver2.isDown(Button.B) && !driver2.isDown(Button.START)) {
+            if(gamepad2.back) robot.outtake.releaser.closeIncrementally();
+            else robot.outtake.releaser.close();
+        }
 
         // hang
         if(driver2.isDown(Button.BACK)) {
             robot.hang.setPower(-driver2.getRightY());
             robot.hang.rightServo.rotateBy(driver2.getRightX() / 200);
-            robot.hang.leftServo.rotateBy(driver2.getLeftX() / 200);
+            double lsx = driver2.getLeftX();
+            if(Math.abs(lsx) > Math.abs(driver2.getLeftY()))
+                robot.hang.leftServo.rotateBy(lsx / 200);
         }
         if(driver2.isDown(Button.RIGHT_BUMPER)) {
             if(driver2.isDown(Button.BACK)) {
