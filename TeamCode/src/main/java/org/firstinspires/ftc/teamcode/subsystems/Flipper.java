@@ -20,19 +20,20 @@ public class Flipper extends CustomServo {
         setPosition(DOWN_POSITION);
     }
     public class Unflip implements Action {
-        private double logisticGrowth(double L, double k, double x0, double x) {
+        private double logisticEquation(double L, double k, double x0, double x) {
             return L / (1 + Math.exp(-k * (x - x0)));
         }
         @Override
         public boolean run(@NonNull TelemetryPacket packet) {
             double psn = getPosition();
-            double speed = Math.max(logisticGrowth(MAX_SPEED, GROWTH_CONSTANT, MIDPOINT, psn), MIN_SPEED);
+            double speed = Math.max(logisticEquation(MAX_SPEED, GROWTH_CONSTANT, MIDPOINT, psn), MIN_SPEED);
             packet.put("psn", psn);
             packet.put("speed", speed);
-            if(psn > DOWN_POSITION + .01) {
+            if(psn > DOWN_POSITION + .05) {
                 rotateBy(-speed);
                 return true;
             }
+            setPosition(DOWN_POSITION);
             return false;
         }
     }

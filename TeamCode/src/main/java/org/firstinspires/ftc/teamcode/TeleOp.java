@@ -179,7 +179,7 @@ public class TeleOp extends LinearOpMode {
                 robot.outtake.flipper.unrotateIncrementally();
             double lsy = gamepad2.left_stick_y;
             if(Math.abs(lsy) > Math.abs(gamepad2.left_stick_x))
-                robot.outtake.flipper.rotateBy(-lsy / 500);
+                robot.outtake.flipper.rotateBy(-lsy / 600);
         } else {
             if (driver2.isDown(Button.DPAD_UP) && !currentlyRunning(robot.outtake.getRaiseActionClass())) {
                 if(robot.outtake.flipper.getState().equals(Flipper.UP) && armTimer.seconds() > .5)
@@ -196,15 +196,17 @@ public class TeleOp extends LinearOpMode {
             if((!gamepad1.back || !rt1.isDown()) && Math.abs(lsy) > Math.abs(driver2.getLeftX()))
                 robot.outtake.motor.setPower(lsy);
             else robot.outtake.motor.stop();
-            robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 100);
+            robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 300);
         }
         if(!driver2.isDown(Button.BACK)) {
             robot.outtake.armRotator.rotateBy(driver2.getLeftX() / 500);
-            robot.outtake.pixelRotator.rotateBy(driver2.getRightX() / 500);
+            double rx = driver2.getRightX();
+            if(Math.abs(rx) > Math.abs(driver2.getRightY()))
+                robot.outtake.pixelRotator.rotateBy(rx / 500);
         }
         if(driver2.wasJustPressed(Button.LEFT_STICK_BUTTON)) {
             if(driver2.isDown(Button.START)) robot.outtake.armRotator.setCenterPos();
-            else robot.outtake.armRotator.center();
+            else robot.outtake.center();
         }
         if(driver2.wasJustPressed(Button.RIGHT_STICK_BUTTON)) {
             if(driver2.isDown(Button.START)) robot.outtake.pixelRotator.setCenterPos();

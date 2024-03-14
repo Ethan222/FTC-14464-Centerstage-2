@@ -27,8 +27,8 @@ public class Outtake {
         motor.brakeOnZeroPower();
         flipper = new Flipper(hardwareMap, flipperName, 0.45, 1);
         extender = new CustomServo(hardwareMap, extenderName, .3, .88);
-        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .5, 0.005-.002);
-        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .72, .004-.002);
+        armRotator = new Rotator(hardwareMap, armRotatorName, 0, 1, .5, 0.002);
+        pixelRotator = new Rotator(hardwareMap, pixelRotatorName, 0, 1, .72, 0.001);
         releaser = new Releaser(hardwareMap, releaserName, 0.4, .6);
         executorService = Executors.newSingleThreadScheduledExecutor();
         extender.goToMinPos();
@@ -57,7 +57,7 @@ public class Outtake {
 //        armRotator.setPosition(armRotator.CENTER_POS - .02);
         lowerAction = new SequentialAction(
 //                motor.goToPreset(0, .4),
-                extender.goToMinPosWithActions(),
+                extender.goToMinPosWithActions(.1),
                 flipper.unflip()
         );
         return lowerAction;
