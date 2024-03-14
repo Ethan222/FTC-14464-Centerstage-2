@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.Range;
 public class CustomServo {
     // static fields (the same for all CustomServo objects)
     public static final String MIN = "MIN", MAX = "MAX";    // constant strings to represent minimum and maximum states
-    private static final double DEFAULT_SPEED = 0.01;        // constant value for default speed of a servo
+    private static final double DEFAULT_SPEED = 0.001;        // constant value for default speed of a servo
 
     // instance variables (unique for each servo)
     private final Servo servo;      // the actual servo

@@ -53,12 +53,12 @@ public class Outtake {
         );
     }
     public Action lower() {
-        pixelRotator.center();
-        armRotator.setPosition(armRotator.CENTER_POS - .02);
-        lowerAction = new ParallelAction(
+        center();
+//        armRotator.setPosition(armRotator.CENTER_POS - .02);
+        lowerAction = new SequentialAction(
 //                motor.goToPreset(0, .4),
                 extender.goToMinPosWithActions(),
-                flipper.unflip(.2)
+                flipper.unflip()
         );
         return lowerAction;
     }

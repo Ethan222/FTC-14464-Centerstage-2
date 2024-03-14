@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -33,9 +34,9 @@ public class TeleOp extends LinearOpMode {
     private GamepadEx driver1, driver2;
     private TriggerReader rt1, rt2;
     private List<Action> runningActions = new ArrayList<>();
+    private FtcDashboard dash;
     private ScheduledExecutorService executorService;
     private ElapsedTime loopTimer, armTimer;
-//    private boolean continueIntaking = false;
     public static void setStartPose(Pose2d pose) { startPose = pose; }
     private void initialize() {
         robot = new Robot(hardwareMap, startPose);
@@ -51,6 +52,7 @@ public class TeleOp extends LinearOpMode {
         rt1 = new TriggerReader(driver1, Trigger.RIGHT_TRIGGER);
         rt2 = new TriggerReader(driver2, Trigger.RIGHT_TRIGGER);
 
+        dash = FtcDashboard.getInstance();
         executorService = Executors.newSingleThreadScheduledExecutor();
         loopTimer = new ElapsedTime();
         armTimer = new ElapsedTime();
@@ -79,7 +81,6 @@ public class TeleOp extends LinearOpMode {
 
             telemetry.update();
         }
-        telemetry.log().clear();
 
 //        telemetry.addData("Wheel speed (RB)", () -> speed);
         telemetry.addData("intake (RT/LT)", robot.intake::getTelemetry);
@@ -108,6 +109,7 @@ public class TeleOp extends LinearOpMode {
             runningActions = newActions;
 
             telemetry.update();
+            dash.sendTelemetryPacket(packet);
             loopTimer.reset();
         }
     }
@@ -177,7 +179,7 @@ public class TeleOp extends LinearOpMode {
                 robot.outtake.flipper.unrotateIncrementally();
             double lsy = gamepad2.left_stick_y;
             if(Math.abs(lsy) > Math.abs(gamepad2.left_stick_x))
-                robot.outtake.flipper.rotateBy(-lsy / 300);
+                robot.outtake.flipper.rotateBy(-lsy / 500);
         } else {
             if (driver2.isDown(Button.DPAD_UP) && !currentlyRunning(robot.outtake.getRaiseActionClass())) {
                 if(robot.outtake.flipper.getState().equals(Flipper.UP) && armTimer.seconds() > .5)
@@ -220,11 +222,13 @@ public class TeleOp extends LinearOpMode {
 
         // hang
         if(driver2.isDown(Button.BACK)) {
-            robot.hang.setPower(-driver2.getRightY());
-            robot.hang.rightServo.rotateBy(driver2.getRightX() / 200);
+            double ry = driver2.getRightY(), rx = driver2.getRightX();
+            robot.hang.setPower(-ry);
+            if(Math.abs(rx) > Math.abs(ry))
+                robot.hang.rightServo.rotateBy(rx / 600);
             double lsx = driver2.getLeftX();
             if(Math.abs(lsx) > Math.abs(driver2.getLeftY()))
-                robot.hang.leftServo.rotateBy(lsx / 200);
+                robot.hang.leftServo.rotateBy(lsx / 600);
         }
         if(driver2.isDown(Button.RIGHT_BUMPER)) {
             if(driver2.isDown(Button.BACK)) {
