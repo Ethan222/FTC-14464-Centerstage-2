@@ -57,7 +57,7 @@ public class Outtake {
 //        armRotator.setPosition(armRotator.CENTER_POS - .02);
         lowerAction = new SequentialAction(
 //                motor.goToPreset(0, .4),
-                extender.goToMinPosWithActions(.1),
+                extender.goToMinPosWithActions(.02),
                 flipper.unflip()
         );
         return lowerAction;
