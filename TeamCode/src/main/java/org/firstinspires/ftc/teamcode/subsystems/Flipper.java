@@ -13,7 +13,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 public class Flipper extends CustomServo {
     public static final String DOWN = "DOWN", UP = "UP";
     public static double UP_POSITION = .87, DOWN_POSITION = .50, SLOW_DOWN_POSITION = 0.63, INCREMENT = .001;
-    public static double MAX_SPEED = .02, MIN_SPEED = 1e-5, GROWTH_CONSTANT = 75;
+    public static double MAX_SPEED = .02, MIN_SPEED = 5.0E-5, GROWTH_CONSTANT = 75;
     private final double MIDPOINT = (UP_POSITION + DOWN_POSITION) / 2;
     public Flipper(HardwareMap hardwareMap, String id, double minPos, double maxPos) {
         super(hardwareMap, id, minPos, maxPos);

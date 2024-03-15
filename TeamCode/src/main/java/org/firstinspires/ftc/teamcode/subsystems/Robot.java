@@ -21,7 +21,7 @@ public class Robot {
         drive = null; // can't init drive w/o startPose
         intake = new Intake(hardwareMap, "intake");
         outtake = new Outtake(hardwareMap,"motor1","servo0","servo1","servo2","servo4","servo3");
-        hang = new Hang(hardwareMap, "motor0", "servo5", "servoEH1");
+        hang = new Hang(hardwareMap, "motor0", "hang2","servo5", "servoEH1", "hangLF", "hangRF");
         launcher = new Launcher(hardwareMap, "launcher");
         autoClaw = new AutoClaw(hardwareMap, "auto");
     }
