@@ -109,7 +109,7 @@ public class TeleOp extends LinearOpMode {
             telemetry.addData(" pixel rotator (right stick x)", robot.outtake.pixelRotator.getTelemetry());
             telemetry.addData(" releaser (a/b)", robot.outtake.releaser.getTelemetry());
             telemetry.addData("auto claw (x/y)", robot.autoClaw.getTelemetry());
-            telemetry.addLine("\n switch to endgame: back + a");
+            telemetry.addLine("\n switch to endgame: back + y");
         } else {
             telemetry.addLine("hang");
             telemetry.addLine(robot.hang.getTelemetry());
@@ -185,14 +185,14 @@ public class TeleOp extends LinearOpMode {
                         robot.outtake.extender.goToMaxPos();
                     else {
                         robot.outtake.releaser.close();
-                        cancel(robot.outtake.getLowerActionClass());
+                        runningActions.clear();
                         runningActions.add(robot.outtake.raise());
                         armTimer.reset();
                     }
                 } else if (driver2.isDown(Button.DPAD_DOWN) && !currentlyRunning(robot.outtake.getLowerActionClass()))
                     runningActions.add(robot.outtake.lower());
                 double lsy = driver2.getLeftY();
-                if ((!gamepad1.back || !rt1.isDown()) && Math.abs(lsy) > Math.abs(driver2.getLeftX()))
+                if ((!gamepad1.back || !rt1.isDown()) && Math.abs(lsy) > Math.abs(driver2.getLeftX()) && !robot.outtake.flipper.getState().equals(Flipper.DOWN))
                     robot.outtake.motor.setPower(lsy);
                 else robot.outtake.motor.stop();
                 robot.outtake.extender.rotateBy(-gamepad2.right_stick_y / 300);
@@ -223,18 +223,18 @@ public class TeleOp extends LinearOpMode {
         }
 
         // endgame
-        if(gamepad2.back && gamepad2.a) endgame = true;
-        else if(gamepad2.back && gamepad2.b) endgame = false;
+        if(gamepad2.back && (gamepad2.x || gamepad2.y)) endgame = true;
+        else if(gamepad2.back && (gamepad2.a || gamepad2.b)) endgame = false;
         if(endgame) {
             // hang
             if(gamepad2.back) {
-                robot.hang.leftBack.rotateBy(-gamepad2.left_stick_y / 800);
+                robot.hang.leftBack.rotateBy(-gamepad2.left_stick_y / 1000);
                 robot.hang.rightBack.rotateBy(-gamepad2.right_stick_y / 800);
-                robot.hang.leftFront.rotateBy(-gamepad2.left_stick_x / 600);
-                robot.hang.rightFront.rotateBy(gamepad2.right_stick_x / 600);
+                robot.hang.leftFront.set(-gamepad2.left_stick_x / 6);
+                robot.hang.rightFront.set(gamepad2.right_stick_x / 5);
             } else {
-                robot.hang.rotateBackServos(-gamepad2.left_stick_y / 600);
-                robot.hang.rotateFrontServos(-gamepad2.left_stick_x / 600);
+                robot.hang.rotateBackServos(-gamepad2.left_stick_y / 900);
+                robot.hang.rotateFrontServos(-gamepad2.left_stick_x / 5);
                 robot.hang.motors.set(-gamepad2.right_stick_y);
             }
             if(gamepad2.left_bumper) robot.hang.lower();
@@ -244,9 +244,9 @@ public class TeleOp extends LinearOpMode {
         }
 
         // auto claw
-        if (driver2.isDown(Button.X) && !driver2.isDown(Button.START))
+        if (driver2.isDown(Button.X) && !driver2.isDown(Button.START) && !driver2.isDown(Button.BACK))
             robot.autoClaw.down(.005);
-        else if (driver2.isDown(Button.Y))
+        else if (driver2.isDown(Button.Y) && !driver2.isDown(Button.BACK))
             robot.autoClaw.up(.005);
 
         // clear running actions
@@ -254,7 +254,7 @@ public class TeleOp extends LinearOpMode {
             runningActions.clear();
     }
 
-    private boolean currentlyRunning(Class targetAction) {
+    private boolean currentlyRunning(Class<Action> targetAction) {
         for(Action action : runningActions) {
             if(action.getClass().equals(targetAction))
                 return true;
@@ -271,7 +271,7 @@ public class TeleOp extends LinearOpMode {
         double newY = (orig.x * Math.sin(rotation)) + (orig.y * Math.cos(rotation));
         return new Vector2d(newX, newY);
     }
-    private void cancel(Class actionToCancel) {
+    private void cancel(Class<Action> actionToCancel) {
         if(actionToCancel == null) return;
         for(int i = 0; i < runningActions.size(); i++) {
             if(runningActions.get(i).getClass().equals(actionToCancel))

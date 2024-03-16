@@ -4,7 +4,6 @@ import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.SequentialAction;
-import com.acmerobotics.roadrunner.SleepAction;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import java.util.Objects;
@@ -20,7 +19,7 @@ public class Outtake {
     public final Releaser releaser;
     private final ScheduledExecutorService executorService;
     private Action lowerAction;
-    private Class raiseActionClass;
+    private Class<Action> raiseActionClass;
 
     public Outtake(HardwareMap hardwareMap, String motorName, String flipperName, String extenderName, String armRotatorName, String pixelRotatorName, String releaserName) {
         motor = new Motor(hardwareMap, motorName);
@@ -42,7 +41,7 @@ public class Outtake {
                 flipper.flip(),
                 new InstantAction(this::center)
         );
-        raiseActionClass = raiseAction.getClass();
+        raiseActionClass = (Class<Action>) raiseAction.getClass();
         return raiseAction;
     }
     public Action raiseAndExtendSlightly() {
@@ -57,13 +56,13 @@ public class Outtake {
 //        armRotator.setPosition(armRotator.CENTER_POS + .01);
         lowerAction = new SequentialAction(
 //                motor.goToPreset(0, .4),
-                extender.goToMinPosWithActions(0.005),
+                extender.goToMinPosWithActions(0.008),
                 flipper.unflip()
         );
         return lowerAction;
     }
-    public Class getLowerActionClass() {
-        return lowerAction == null ? null : lowerAction.getClass();
+    public Class<Action> getLowerActionClass() {
+        return lowerAction == null ? null : (Class<Action>) lowerAction.getClass();
     }
     public void center() {
         armRotator.center();
@@ -77,7 +76,7 @@ public class Outtake {
         return new SequentialAction(
                 extender.goToMaxPosWithActions(),
                 new ParallelAction(
-                        armRotator.goToPos(0.12),
+                        armRotator.goToPos(0.12-.07),
                         pixelRotator.goToPos(0.48)
                 )
         );
@@ -85,7 +84,7 @@ public class Outtake {
     public Action goToRight() {
         return new ParallelAction(
             extender.goToMaxPosWithActions(),
-            armRotator.goToPos(0.9-.05),
+            armRotator.goToPos(0.85-.05),
             pixelRotator.goToPos(1.0)
         );
     }
@@ -98,7 +97,7 @@ public class Outtake {
         pixelRotator.unrotateIncrementally();
     }
 
-    public Class getRaiseActionClass() {
+    public Class<Action> getRaiseActionClass() {
         return raiseActionClass;
     }
 
