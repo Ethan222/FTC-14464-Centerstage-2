@@ -233,15 +233,18 @@ public class TeleOp extends LinearOpMode {
                 robot.hang.rightBack.rotateBy(-gamepad2.right_stick_y / 800);
                 robot.hang.leftFront.set(-gamepad2.left_stick_x / 6);
                 robot.hang.rightFront.set(gamepad2.right_stick_x / 5);
+            } else if(gamepad2.start) {
+                robot.hang.leftMotor.setPower(-gamepad2.left_stick_y);
+                robot.hang.rightMotor.setPower(-gamepad2.right_stick_y);
             } else {
                 robot.hang.rotateBackServos(-gamepad2.left_stick_y / 900);
                 robot.hang.rotateFrontServos(-gamepad2.left_stick_x / 5);
-                robot.hang.motors.set(-gamepad2.right_stick_y);
+                robot.hang.setMotorPowers(-gamepad2.right_stick_y);
             }
             if(gamepad2.left_bumper) robot.hang.lower();
             // launcher
-            if(gamepad2.right_trigger > .5) robot.launcher.launch();
-            else if(gamepad2.left_trigger > .5) robot.launcher.reset();
+            if (gamepad2.right_trigger > .5) robot.launcher.launch(gamepad2.right_trigger);
+            else if (gamepad2.left_trigger > .5) robot.launcher.reset(gamepad2.right_trigger);
         }
 
         // auto claw

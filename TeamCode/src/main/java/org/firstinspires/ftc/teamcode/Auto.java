@@ -51,7 +51,7 @@ public class Auto extends LinearOpMode {
     private ElapsedTime timer;
     private ScheduledExecutorService executorService;
     private boolean initialized = false, propLocationOverride = false;
-    private static final double MIN_INIT_TIME = 5, WAIT_TIME = 20+2;
+    private static final double MIN_INIT_TIME = 5, WAIT_TIME = 22;
     private double beginningWaitTime = 0;
     private Telemetry.Item status, propLocationTelemetry;
     private GamepadEx driver;
@@ -334,7 +334,7 @@ public class Auto extends LinearOpMode {
                 Actions.runBlocking(new SequentialAction(
                         robot.drive.actionBuilder(robot.drive.pose)
                             .strafeToSplineHeading(trajectories.trussFront, Math.PI)
-                            .waitSeconds(wait ? Math.max(getRuntime() - WAIT_TIME, 0) : .01)
+                            .waitSeconds(wait ? Math.max(WAIT_TIME - getRuntime(), .01) : .01)
                             .strafeTo(trajectories.trussBack)
                             .build()
                 ));
@@ -696,7 +696,7 @@ public class Auto extends LinearOpMode {
                 )
         ));
 
-        final double MAX_DETECTION_TIME = 2.5-1, MAX_CHANGE = 15+7;
+        final double MAX_DETECTION_TIME = 1.5-1, MAX_CHANGE = 15+7;
         status.setValue("looking for april tags...");
         telemetry.update();
         timer.reset();

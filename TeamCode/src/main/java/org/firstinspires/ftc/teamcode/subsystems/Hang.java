@@ -1,22 +1,17 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.arcrobotics.ftclib.hardware.motors.CRServo;
-import com.arcrobotics.ftclib.hardware.motors.Motor;
-import com.arcrobotics.ftclib.hardware.motors.MotorGroup;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import java.util.List;
-
 public class Hang {
-    public MotorGroup motors;
+    public Motor leftMotor, rightMotor;
     public final CustomServo leftBack, rightBack;
     public final CRServo leftFront, rightFront;
-    public Hang(HardwareMap hardwareMap, String leftMotor, String rightMotor, String leftBack, String rightBack, String leftFront, String rightFront) {
-        Motor left = new Motor(hardwareMap, leftMotor), right = new Motor(hardwareMap, rightMotor);
-        left.setInverted(true);
-        motors = new MotorGroup(left, right);
+    public Hang(HardwareMap hardwareMap, String leftMotorId, String rightMotorId, String leftBack, String rightBack, String leftFront, String rightFront) {
+        leftMotor = new Motor(hardwareMap, leftMotorId, true);
+        rightMotor = new Motor(hardwareMap, rightMotorId);
         this.leftBack = new CustomServo(hardwareMap, leftBack, .4, .8);
-        this.rightBack = new CustomServo(hardwareMap, rightBack, .3, .7);
+        this.rightBack = new CustomServo(hardwareMap, rightBack, .3, .9);
         this.leftFront = new CRServo(hardwareMap, leftFront);
         this.rightFront = new CRServo(hardwareMap, rightFront);
     }
@@ -49,7 +44,11 @@ public class Hang {
     }
 
     private String getMotorSpeedsAsString() {
-        List<Double> motorSpeeds = motors.getSpeeds();
-        return String.format("[%.2f, %.2f]", motorSpeeds.get(0), motorSpeeds.get(1));
+        return String.format("[%s, %s]", leftMotor.getTelemetry(), rightMotor.getTelemetry());
+    }
+
+    public void setMotorPowers(double power) {
+        leftMotor.setPower(power);
+        rightMotor.setPower(power);
     }
 }
