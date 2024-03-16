@@ -76,8 +76,8 @@ public class Outtake {
         return new SequentialAction(
                 extender.goToMaxPosWithActions(),
                 new ParallelAction(
-                        armRotator.goToPos(0.12-.07),
-                        pixelRotator.goToPos(0.48)
+                        armRotator.goToPos(0.05-.05),
+                        pixelRotator.goToPos(0.4)
                 )
         );
     }

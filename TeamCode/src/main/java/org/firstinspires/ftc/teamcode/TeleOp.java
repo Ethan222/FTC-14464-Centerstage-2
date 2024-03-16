@@ -186,6 +186,7 @@ public class TeleOp extends LinearOpMode {
                     else {
                         robot.outtake.releaser.close();
                         runningActions.clear();
+                        cancel(robot.outtake.getLowerActionClass());
                         runningActions.add(robot.outtake.raise());
                         armTimer.reset();
                     }
